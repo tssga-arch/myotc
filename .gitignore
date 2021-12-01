@@ -1,0 +1,4 @@
+.venv
+flavorlst.yaml
+imglst.yaml
+__pycache__

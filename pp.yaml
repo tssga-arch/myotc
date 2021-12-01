@@ -1,0 +1,23 @@
+#
+# Try pre-processor features
+#
+#define ABC 123
+
+x{ABC}: 433
+
+balh:
+ #include demo1.yaml
+cheh:
+ - content: |
+     #include --raw vars.bat
+ - yaho: {{}}
+
+base64: |
+  #include --bin vars.bat
+
+xyz:
+   #include demo1.yaml
+
+oh: {ABC}
+home: {HOME}
+shell: {SHELL}
