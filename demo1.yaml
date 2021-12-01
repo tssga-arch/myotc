@@ -73,8 +73,9 @@ nets:
               groups: users
               lock_passwd: false
               shell: /bin/bash
-              #passwd: 
-              #ssh_authorized_keys:
+              passwd: $6$a9mFVaQzLjBr5GEz$O3dodR3VudX2b5aGM99pPA5J/MCSp0y9n8dmjK7iJmkmAsBptrF3R0lbKKpU0HPYuOLDc7Yrd7q/6LVnjiy25.
+              ssh_authorized_keys:
+              - #include --raw ssh/id_rsa.pub
 
           write_files:
            - owner: root:root
