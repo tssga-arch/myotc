@@ -1,3 +1,7 @@
+# MyOTC
+
+My OTC Automation scripts
+
 # NOTES
 
 - [Openstack client](https://pypi.org/project/python-openstackclient/)
@@ -25,7 +29,7 @@
   - $PWGEN:label:SHA256:nn$
   - $PWGEN:label:PWSHA512:nn$
   - out to stdout and/or to a file
-  - save with label cleartext version
+  - save with label cleartext version, or load it if already exists
   - https://serverfault.com/questions/330069/how-to-create-an-sha-512-hashed-password-for-shadow
   - https://medium.com/analytics-vidhya/create-a-random-password-generator-using-python-2fea485e9da9
 
