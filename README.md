@@ -20,10 +20,10 @@
 - split off myotc ->cmds.py
 - re-org resource types?
 - pwgen
-  $PWGEN:label:nn$
-  $PWGEN:label:MD5:nn$
-  $PWGEN:label:SHA256:nn$
-  $PWGEN:label:PWSHA512:nn$
+  - $PWGEN:label:nn$
+  - $PWGEN:label:MD5:nn$
+  - $PWGEN:label:SHA256:nn$
+  - $PWGEN:label:PWSHA512:nn$
   - out to stdout and/or to a file
   - save with label cleartext version
   - https://serverfault.com/questions/330069/how-to-create-an-sha-512-hashed-password-for-shadow
