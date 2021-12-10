@@ -4,6 +4,9 @@ import yaml
 import sys
 import re
 import os
+import random
+import string
+from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 
 ###################################################################
 #
@@ -11,11 +14,15 @@ import os
 #
 ###################################################################
 yaml_include_path = []
+secrets_file = '_secrets_file_'
 yaml_pp_vars = dict(os.environ)
 
 valid_re = re.compile(r'^[A-Za-z][A-Za-z0-9]*$')
 
 def yaml_init(inc_path, predef):
+  if not secrets_file in yaml_pp_vars:
+    yaml_pp_vars[secrets_file] = '_secrets.yaml'
+
   if inc_path:
     for inc in inc_path:
       if os.path.isdir(inc):
@@ -103,7 +110,56 @@ def yaml_bin(fname, prefix = '', prev = None):
 
   return txt
 
+pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+
+def pwgen(line):
+  secrets = None
+  mv = pwgen_re.match(line)
+  if not mv: return line
+
+  if mv.group(1)[-1] == '$':
+    return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
+
+  store = mv.group(2)
+  pwlen = 12
+  encode = ''
+  for opt in mv.group(3).split(':'):
+    if not opt: continue
+    if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512':
+      encode = opt
+    elif opt.isnumeric():
+      pwlen = int(opt)
+
+  if secrets is None:
+    if os.path.isfile(yaml_pp_vars[secrets_file]):
+      with open(yaml_pp_vars[secrets_file],'r') as fp:
+        secrets = yaml.safe_load(fp)
+    else:
+      secrets = {}
+  
+  if store in secrets:
+    passwd = secrets[store]
+  else:
+    charset = string.ascii_lowercase + string.ascii_uppercase + string.digits
+    passwd = ''.join(random.sample(charset, pwlen))
+    secrets[store] = passwd
+    with open(yaml_pp_vars[secrets_file],'w') as fp:
+      fp.write(yaml.dump(secrets))
+    print('Generated password for {store} as {passwd}'.format(store=store,passwd=passwd))
+
+  if encode == 'MD5':
+    cpassw = md5_crypt.hash(passwd)
+  elif encode == 'SHA256':
+    cpassw = sha256_crypt.hash(passwd,rounds=5000)
+  elif encode == 'SHA512':
+    cpassw = sha512_crypt.hash(passwd,rounds=5000)
+  else:
+    cpassw = passwd
+
+  return line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
+
 define_re = re.compile(r'^\s*#\s*define\s+([A-Za-z][A-Za-z0-9]*)\s*')
+
 def yaml_pp(fname, prefix = '', prev = None):
   txt = ''
   prefix2 = prefix.replace('-',' ')
@@ -129,7 +185,7 @@ def yaml_pp(fname, prefix = '', prev = None):
           txt += yaml_pp(mv['file'], prefix = prefix2+mv['prefix'], prev=fname)
         continue
 
-      txt += prefix + line.format(**yaml_pp_vars) + "\n"
+      txt += prefix + pwgen(line.format(**yaml_pp_vars)) + "\n"
       prefix = prefix2
 
   return txt

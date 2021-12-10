@@ -1,0 +1,42 @@
+#
+# Create a basic Linux server
+#
+#define PWDEFAULTS SHA256:12
+sid: demo2
+snat: True
+nets:
+  1:
+    vms:
+      1:
+        image: Standard_Ubuntu_20.04_latest
+        flavor: s3.medium.1
+        eip: True
+        sg:
+         - 22/tcp
+         - 443/tcp
+        user_data:
+          # Do apt-get update
+          package_update: True
+          package_reboot_if_required: true
+          packages:
+           - pwgen
+           - micro
+           - python3-venv
+           - zip
+          users:
+            - name: linux
+              sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+              groups: users
+              lock_passwd: false
+              shell: /bin/bash
+              passwd: $PWGEN:linux:{PWDEFAULTS}$
+              ssh_authorized_keys:
+              - #include --raw ssh/id_rsa.pub
+          runcmd:
+           # Let sshd listen on port 443 too.
+           - "echo Port 22 >> /etc/ssh/sshd_config"
+           - "echo Port 443 >> /etc/ssh/sshd_config"
+           - "sed -i~ -e 's/^.*AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config"
+           - systemctl restart sshd
+
+
