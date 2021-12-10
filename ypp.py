@@ -7,6 +7,9 @@ import os
 import random
 import string
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
+from cryptography.hazmat.primitives import serialization as crypto_serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
 
 ###################################################################
 #
@@ -15,6 +18,7 @@ from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 ###################################################################
 yaml_include_path = []
 secrets_file = '_secrets_file_'
+key_store = '_ssh_key_store_'
 yaml_pp_vars = dict(os.environ)
 
 valid_re = re.compile(r'^[A-Za-z][A-Za-z0-9]*$')
@@ -22,6 +26,8 @@ valid_re = re.compile(r'^[A-Za-z][A-Za-z0-9]*$')
 def yaml_init(inc_path, predef):
   if not secrets_file in yaml_pp_vars:
     yaml_pp_vars[secrets_file] = '_secrets.yaml'
+  if not key_store in yaml_pp_vars:
+    yaml_pp_vars[key_store] = '_keys_'
 
   if inc_path:
     for inc in inc_path:
@@ -110,6 +116,65 @@ def yaml_bin(fname, prefix = '', prev = None):
 
   return txt
 
+keygen_re = re.compile(r'(.*)\$KEYGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+def sshkeygen(line):
+  mv = keygen_re.match(line)
+  if not mv: return line
+
+  if mv.group(1)[-1] == '$':
+    return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
+
+  store = mv.group(2)
+  mode = 'pub'
+  key_sz = 2048
+
+  for opt in mv.group(3).split(':'):
+    if not opt: continue
+    if opt == 'pub' or opt == 'priv':
+      mode = opt
+      continue
+    elif opt.isnumeric():
+      key_sz = int(opt)
+
+  keydir= yaml_pp_vars[key_store]
+  if not os.path.isdir(keydir): os.mkdir(keydir)
+  if os.path.isfile(keydir + "/" + store) and os.path.isfile(keydir + '/' + store + '.pub'):
+    with open(keydir + "/" + store,'r') as fp:
+      private_key = fp.read().strip()
+    with open(keydir + "/" + store + '.pub','r') as fp:
+      public_key = fp.read().strip()
+  else:
+    key = rsa.generate_private_key(
+        backend=crypto_default_backend(),
+        public_exponent=65537,
+        key_size=key_sz
+    )
+    private_key = key.private_bytes(
+        crypto_serialization.Encoding.PEM,
+        crypto_serialization.PrivateFormat.TraditionalOpenSSL,
+        crypto_serialization.NoEncryption()
+    ).decode('ascii')
+    public_key = key.public_key().public_bytes(
+        crypto_serialization.Encoding.OpenSSH,
+        crypto_serialization.PublicFormat.OpenSSH
+    ).decode('ascii')
+    with open(keydir + "/" + store,'w') as fp:
+      fp.write(private_key + "\n")
+    with open(keydir + "/" + store + '.pub','w') as fp:
+      fp.write(public_key + "\n")
+
+  if mode == 'pub':
+    okey = public_key
+  else:
+    okey = private_key
+
+  lines = []
+
+  for part in okey.split("\n"):
+    lines.append(line[:len(mv.group(1))]  + part + line[len(mv.group(0)):])
+
+  return "\n".join(lines)
+
 pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
 
 def pwgen(line):
@@ -136,7 +201,7 @@ def pwgen(line):
         secrets = yaml.safe_load(fp)
     else:
       secrets = {}
-  
+
   if store in secrets:
     passwd = secrets[store]
   else:
@@ -185,7 +250,9 @@ def yaml_pp(fname, prefix = '', prev = None):
           txt += yaml_pp(mv['file'], prefix = prefix2+mv['prefix'], prev=fname)
         continue
 
-      txt += prefix + pwgen(line.format(**yaml_pp_vars)) + "\n"
+      line = prefix + line.format(**yaml_pp_vars)
+
+      txt += sshkeygen(pwgen(line)) + "\n"
       prefix = prefix2
 
   return txt

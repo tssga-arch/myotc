@@ -31,7 +31,13 @@ nets:
               shell: /bin/bash
               passwd: $PWGEN:linux:{PWDEFAULTS}$
               ssh_authorized_keys:
-              - #include --raw ssh/id_rsa.pub
+              - $KEYGEN:linux:pub$
+          write_files:
+           - owner: root:root
+             path: /root/linux.key
+             permissions: '0600'
+             content: |
+               $KEYGEN:linux:priv$
           runcmd:
            # Let sshd listen on port 443 too.
            - "echo Port 22 >> /etc/ssh/sshd_config"

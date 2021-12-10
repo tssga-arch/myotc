@@ -2,6 +2,50 @@
 
 My OTC Automation scripts
 
+# Preprocessor
+
+This software makes use of a simple pre-processor (ypp).
+
+Command line arguments:
+
+- -I<path> : Add <path> to the include search path
+- -D<key>=<value> : Define a variable
+
+Pre-process syntax:
+
+- To define variables:
+  - `#define key value`
+- To use a variable:
+  - `{key}`
+  - note that it can be embedded in a string, e.g. `something {key} other`
+- Escape variable:
+  - `{{ ... }}`
+  - Double `{{` and `}}` are replaced as single brackets.
+- password generator:
+  - `$PWGEN:store:len$`
+    - Generate a clear text password  of `len` characters (and save
+      it to the store)
+  - `$PWGEN:store:MD5:len$
+    - Genarate a password and encode it using UNIX MD5 hash.
+  - `$PWGEN:store:SHA256:len$
+  - `$PWGEN:store:SHA512:len$
+    - Generate a password and encode it using SHA256 or SHA512 hashes.
+  - `$$` PWGEN ...
+    - Escape password generator
+- ssh key generator:
+  - `$KEYGEN:file:pub`
+    - Generate public keypair and save it to `file`.  Output public key.
+  - `$KEYGEN:file:priv`
+    - Generate public keypair and save it to `file`.  Output private key.
+  - `$$` KEYGEN
+    - Escape key generator
+
+PWGEN will save clear text version of passwords to `_secrets.yaml` or
+to whatever is defined as `_secrets_file_`.
+
+KEYGEN will save public/private key pairs as files in directory
+`_keys_` or to whatever is defined as `_ssh_key_store_`.
+
 # NOTES
 
 - [Openstack client](https://pypi.org/project/python-openstackclient/)
@@ -17,19 +61,13 @@ My OTC Automation scripts
 
 - https://cloudinit.readthedocs.io/en/latest/topics/examples.html
 
+# ISSUES
+
+- It is not possible to configure through the API the DNS domain
+  name.
+
 # TODO
 
-- how to add dns_domain?
 - use resize server?
-- split off myotc ->cmds.py
 - re-org resource types?
-- pwgen
-  - $PWGEN:label:nn$
-  - $PWGEN:label:MD5:nn$
-  - $PWGEN:label:SHA256:nn$
-  - $PWGEN:label:SHA512:nn$
-  - out to stdout and/or to a file
-  - save with label cleartext version, or load it if already exists
-- support ssh keys
-  - https://stackoverflow.com/questions/2466401/how-to-generate-ssh-key-pairs-with-python
-  - cryptography module is probably included with openstacksdk
+

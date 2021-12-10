@@ -5,9 +5,9 @@ sid: demo1
 snat: True
 sgs:
   common:
-   - 22/tcp
-   - 443/tcp
-   - 80/tcp
+    - 22/tcp
+    - 80/tcp
+    - 443/tcp
 nets:
   1:
     #~ cidr: "10.1.1.0/24"
@@ -20,10 +20,10 @@ nets:
         flavor: s3.large.2
         eip: True
         sg: common
-        #~ vols:
-          #~ 1: {{ size: 2 }}
-          #~ 2: {{ size: 4 }}
-          #~ volume-8d36: {{ }}
+        vols:
+          1: {{ size: 2 }}
+          2: {{ size: 4 }}
+          volume-8d36: {{ }}
         user_data:
           # Do apt-get update
           package_update: True
@@ -73,10 +73,9 @@ nets:
               groups: users
               lock_passwd: false
               shell: /bin/bash
-              passwd: $6$a9mFVaQzLjBr5GEz$O3dodR3VudX2b5aGM99pPA5J/MCSp0y9n8dmjK7iJmkmAsBptrF3R0lbKKpU0HPYuOLDc7Yrd7q/6LVnjiy25.
+              passwd: $PWGEN:linux:SHA256:16$
               ssh_authorized_keys:
-              - #include --raw ssh/id_rsa.pub
-
+              - $KEYGEN:linux:pub$
           write_files:
            - owner: root:root
              path: /etc/X11/xorg.conf
