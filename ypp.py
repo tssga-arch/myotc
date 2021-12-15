@@ -21,7 +21,7 @@ secrets_file = '_secrets_file_'
 key_store = '_ssh_key_store_'
 yaml_pp_vars = dict(os.environ)
 
-valid_re = re.compile(r'^[A-Za-z][A-Za-z0-9]*$')
+valid_re = re.compile(r'^[_A-Za-z][_A-Za-z0-9]*$')
 
 def yaml_init(inc_path, predef):
   if not secrets_file in yaml_pp_vars:
