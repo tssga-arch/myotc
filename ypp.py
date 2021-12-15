@@ -223,7 +223,7 @@ def pwgen(line):
 
   return line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
 
-define_re = re.compile(r'^\s*#\s*define\s+([A-Za-z][A-Za-z0-9]*)\s*')
+define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 
 def yaml_pp(fname, prefix = '', prev = None):
   txt = ''
