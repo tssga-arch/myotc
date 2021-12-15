@@ -68,6 +68,7 @@ KEYGEN will save public/private key pairs as files in directory
 
 # TODO
 
+- Add #ifdef/#ifndef/#else/#endif constructs
 - use resize server?
 - re-org resource types?
 
