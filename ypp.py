@@ -6,6 +6,7 @@ import re
 import os
 import random
 import string
+from d3des import encrypt as d3des
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -190,7 +191,7 @@ def pwgen(line):
   encode = ''
   for opt in mv.group(3).split(':'):
     if not opt: continue
-    if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512':
+    if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512' or opt == 'vnc':
       encode = opt
     elif opt.isnumeric():
       pwlen = int(opt)
@@ -218,6 +219,8 @@ def pwgen(line):
     cpassw = sha256_crypt.hash(passwd,rounds=5000)
   elif encode == 'SHA512':
     cpassw = sha512_crypt.hash(passwd,rounds=5000)
+  elif encode == 'vnc':
+    cpassw = d3des(passwd)
   else:
     cpassw = passwd
 
