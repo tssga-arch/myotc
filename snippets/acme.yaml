@@ -1,0 +1,33 @@
+#
+# Include this in `runcmd` section of `user_data`:
+#
+# Enable ACME certificates using acme.sh client.
+#
+# Must define:
+# - acme_email or email
+# Config Options:
+# - acme_domains : Domains to issue certificates (-d fqdn), if not defined,
+#   acme.sh will be configured but not certificates will be issued.
+# - acme_root : where certificates and other acme data will be stored
+# - acme_email : e-mail address to register (Defaults to {{email}} if defined)
+# - acme_reloadcmd : command to issue to reload certificates
+# - acme_web_root : path to the web server document root
+# - acme_get_url : https://get.acme.sh
+# - acme_cron : cron schedule to use
+# Output:
+# - ca_root : where certificates are stored
+# - acme_issue : command to issue certificates
+
+#ifndef acme_config
+#include acme-config.yaml
+#endif
+
+- wget -O- {acme_get_url} | env HOME="$(dirname {acme_root})" sh -s email="{acme_email}"
+#ifdef acme_domains
+- {acme_issue} {acme_domains}
+#endif
+# Add a cronjob
+- echo "{acme_cron} {acme_root}/acme.sh --cron --server {acme_server} -w {acme_web_root} --home {acme_root} --reloadcmd '{acme_reloadcmd}'> /dev/null" > /etc/cron.d/acme.sh
+# Also add to rc.local to cater for systems that are not up all the time, 
+- [ ! -f /etc/rc.local ] && ( echo "#!/bin/bash" > /etc/rc.local ; chmod 755 /etc/rc.local )
+- echo "{acme_root}/acme.sh --cron --server {acme_server} -w {acme_web_root} --home {acme_root} --reloadcmd '{acme_reloadcmd}'" >> /etc/rc.local
