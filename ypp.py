@@ -224,10 +224,15 @@ def pwgen(line):
   return line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
 
 define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+ifndef_re = re.compile(r'^\s*#\s*ifndef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+else_re = re.compile(r'^\s*#\s*else\s*')
+endif_re = re.compile(r'^\s*#\s*endif\s*')
 
 def yaml_pp(fname, prefix = '', prev = None):
   txt = ''
   prefix2 = prefix.replace('-',' ')
+  cond_stack = []
 
   fname = yaml_findfile(fname, prev)
 
@@ -235,6 +240,47 @@ def yaml_pp(fname, prefix = '', prev = None):
     for line in f:
       if line.endswith("\n"): line = line[:-1]
       if line.endswith("\r"): line = line[:-1]
+      if len(cond_stack):
+        # In Conditional
+        mv = else_re.match(line)
+        if mv:
+          # It is an else match...
+          cond_stack[0] = not cond_stack[0]
+          continue
+        mv = endif_re.match(line)
+        if mv:
+          # It is an endif match... so pop the stack!
+          cond_stack = cond_stack[1:]
+          continue
+        if not cond_stack[0]:
+          # supressing output...
+          mv = ifdef_re.match(line)
+          if mv:
+            # handle a nested ifdef
+            cond_stack.insert(0,False)
+            continue
+          mv = ifndef_re.match(line)
+          if mv:
+            # handle a nested ifndef
+            cond_stack.insert(0,False)
+            continue
+          continue
+
+      mv = ifdef_re.match(line)
+      if mv:
+        if mv.group(1) in yaml_pp_vars:
+          cond_stack.insert(0,True)
+        else:
+          cond_stack.insert(0,False)  
+        continue
+      mv = ifndef_re.match(line)
+      if mv:
+        if mv.group(1) in yaml_pp_vars:
+          cond_stack.insert(0,False)
+        else:
+          cond_stack.insert(0,True)  
+        continue
+        
       mv = define_re.match(line)
       if mv:
         yaml_pp_vars[mv.group(1)] = line[mv.end():].format(**yaml_pp_vars)

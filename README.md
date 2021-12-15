@@ -46,6 +46,13 @@ to whatever is defined as `_secrets_file_`.
 KEYGEN will save public/private key pairs as files in directory
 `_keys_` or to whatever is defined as `_ssh_key_store_`.
 
+Pre-processor conditionals:
+
+- #ifdef <variable>
+- #ifndef <variable>
+- #else
+- #endif
+
 # NOTES
 
 - [Openstack client](https://pypi.org/project/python-openstackclient/)
@@ -68,7 +75,7 @@ KEYGEN will save public/private key pairs as files in directory
 
 # TODO
 
-- Add #ifdef/#ifndef/#else/#endif constructs
+- Add #elifdef|#elifndef contruct
 - use resize server?
 - re-org resource types?
 
