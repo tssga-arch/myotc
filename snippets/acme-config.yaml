@@ -8,6 +8,7 @@
   #define acme_root {ca_root}
   #else
   #define acme_root /root/.acme.sh
+  #define ca_root {acme_root}
   #endif
  #else
   #ifndef ca_root

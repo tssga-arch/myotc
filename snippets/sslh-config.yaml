@@ -3,7 +3,7 @@
 #
 #ifndef sslh_config
  #define sslh_config
- #ifdef sslh_tls_listen
+ #ifndef sslh_tls_listen
  #define sslh_tls_listen 127.0.00.1:8443
  #endif
 #endif

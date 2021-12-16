@@ -22,5 +22,5 @@
 
 # Also add to rc.local to cater for systems that are not up all the time, 
 - {resolvectl_cmd}
-- [ ! -f /etc/rc.local ] && ( echo "#!/bin/bash" > /etc/rc.local ; chmod 755 /etc/rc.local )
+- "[ ! -f /etc/rc.local ] && ( echo '#!/bin/bash' > /etc/rc.local ; chmod 755 /etc/rc.local )"
 - echo '{resolvectl_cmd}' >> /etc/rc.local
