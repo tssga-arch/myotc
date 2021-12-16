@@ -53,20 +53,17 @@ Pre-processor conditionals:
 - #else
 - #endif
 
-# NOTES
+# Links
 
 - [Openstack client](https://pypi.org/project/python-openstackclient/)
 - [OTC extensions docs](https://python-otcextensions.readthedocs.io/en/latest/)
 - [OTC extensions github](https://github.com/opentelekomcloud/python-otcextensions)
-
 - [service proxies](https://python-otcextensions.readthedocs.io/en/latest/sdk/proxies/index.html)
 - [openstack guides](https://docs.openstack.org/openstacksdk/latest/user/index.html)
 - [connection object](https://docs.openstack.org/openstacksdk/latest/user/connection.html)
 - [OTC Help](https://docs.otc.t-systems.com/nat/index.html)
 - [block storage examples](https://docs.otc.t-systems.com/devg/sdk/sdk_02_0017.html)
-
-
-- https://cloudinit.readthedocs.io/en/latest/topics/examples.html
+- [cloudinit examples](https://cloudinit.readthedocs.io/en/latest/topics/examples.html)
 
 # ISSUES
 
@@ -76,6 +73,6 @@ Pre-processor conditionals:
 # TODO
 
 - Add #elifdef|#elifndef contruct
+- persistent, non SID volumes
 - use resize server?
 - re-org resource types?
-
