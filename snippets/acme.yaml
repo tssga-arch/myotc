@@ -27,7 +27,7 @@
 - {acme_issue} {acme_domains}
 #endif
 # Add a cronjob
-- echo "{acme_cron} {acme_root}/acme.sh --cron --server {acme_server} -w {acme_web_root} --home {acme_root} --reloadcmd '{acme_reloadcmd}'> /dev/null" > /etc/cron.d/acme.sh
+- echo "{acme_cron} {acme_root}/acme.sh --cron --server {acme_server} -w {acme_web_root} --home {acme_root} --reloadcmd '{acme_reloadcmd}'> /dev/null" > /etc/cron.d/acme_sh
 # Also add to rc.local to cater for systems that are not up all the time, 
 - "[ ! -f /etc/rc.local ] && ( echo '#!/bin/bash' > /etc/rc.local ; chmod 755 /etc/rc.local )"
 - echo "{acme_root}/acme.sh --cron --server {acme_server} -w {acme_web_root} --home {acme_root} --reloadcmd '{acme_reloadcmd}'" >> /etc/rc.local

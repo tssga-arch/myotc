@@ -35,7 +35,7 @@
  #define acme_server letsencrypt.org
  #endif
  #ifndef acme_cron
- #define acme_cron 0 0 * * *
+ #define acme_cron 0 0 * * * root
  #endif
  #ifndef acme_issue
  #define acme_issue {acme_root}/acme.sh --issue --server {acme_server} --home {acme_root} -w {acme_web_root}
