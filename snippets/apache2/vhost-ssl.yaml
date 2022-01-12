@@ -1,0 +1,60 @@
+#
+# Include this in `write_files` section of `user_data`:
+#
+# required:
+# - vhost_fqdn : fqdn of host
+# options:
+# - vhost_conf_dir : where to store config files
+# - vhost_listen : defaults to _default_:443 unless sslh_tls_listen is defined
+# - vhost_admin : e-mail of admin
+# - vhost_docroot : document root location
+# - vhost_sslcert : path to SSL certificate file (defaults to ca_root/fqdn)
+# - vhost_sslkey : path to SSL certificate key (defaults to ca_root/fqdn)
+# - sslh_tls_listen : define this when using sslh to the https web server listening address
+#
+# You need to add to run_cmd:
+#
+# - a2ensite {{vhost_fqdn}}
+# - service apache2 restart
+#
+
+#ifndef vhost_conf_dir
+#define vhost_conf_dir /etc/apache2/sites-available
+#endif
+#ifndef vhost_listen
+ #ifdef sslh_tls_listen
+  #define vhost_listen {sslh_tls_listen}
+ #else
+  #define vhost_listen _default_:443
+ #endif
+#endif
+#ifndef vhost_admin
+#define vhost_admin admin@localhost
+#endif
+#ifndef vhost_docroot
+#define vhost_docroot /var/www/html
+#endif
+
+#ifdef ca_root
+ #ifndef vhost_sslcert
+ #define vhost_sslcert {ca_root}/{vhost_fqdn}/{vhost_fqdn}.cer
+ #endif
+ #ifndef vhost_sslkey
+ #define vhost_sslkey  {ca_root}/{vhost_fqdn}/{vhost_fqdn}.key
+ #endif
+#else
+ # We are assuming self-signed certicate configuration
+ #ifndef vhost_sslcert
+ #define vhost_sslcert  /etc/ssl/certs/ssl-cert-snakeoil.pem
+ #endif
+ #ifndef vhost_sslkey
+ #define vhost_sslkey   /etc/ssl/private/ssl-cert-snakeoil.key
+ #endif
+#endif
+
+- owner: root:root
+  path: {vhost_conf_dir}/{vhost_fqdn}.conf
+  permissions: '0644'
+  content: |
+    #include vhost-ssl.conf
+

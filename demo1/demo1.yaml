@@ -6,9 +6,9 @@ sid: {SID}
 snat: True
 sgs:
   common:
-   - 22/tcp
-   - 443/tcp
-   - 80/tcp
+    - 22/tcp
+    - 80/tcp
+    - 443/tcp
 nets:
   1:
     #~ cidr: "10.1.1.0/24"

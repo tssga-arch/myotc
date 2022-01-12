@@ -4,6 +4,13 @@ import yaml
 import sys
 import re
 import os
+import random
+import string
+from d3des import encrypt as d3des
+from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
+from cryptography.hazmat.primitives import serialization as crypto_serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
 
 ###################################################################
 #
@@ -11,11 +18,18 @@ import os
 #
 ###################################################################
 yaml_include_path = []
+secrets_file = '_secrets_file_'
+key_store = '_ssh_key_store_'
 yaml_pp_vars = dict(os.environ)
 
-valid_re = re.compile(r'^[A-Za-z][A-Za-z0-9]*$')
+valid_re = re.compile(r'^[_A-Za-z][_A-Za-z0-9]*$')
 
 def yaml_init(inc_path, predef):
+  if not secrets_file in yaml_pp_vars:
+    yaml_pp_vars[secrets_file] = '_secrets.yaml'
+  if not key_store in yaml_pp_vars:
+    yaml_pp_vars[key_store] = '_keys_'
+
   if inc_path:
     for inc in inc_path:
       if os.path.isdir(inc):
@@ -103,10 +117,125 @@ def yaml_bin(fname, prefix = '', prev = None):
 
   return txt
 
-define_re = re.compile(r'^\s*#\s*define\s+([A-Za-z][A-Za-z0-9]*)\s*')
+keygen_re = re.compile(r'(.*)\$KEYGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+def sshkeygen(line):
+  mv = keygen_re.match(line)
+  if not mv: return line
+
+  if mv.group(1)[-1] == '$':
+    return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
+
+  store = mv.group(2)
+  mode = 'pub'
+  key_sz = 2048
+
+  for opt in mv.group(3).split(':'):
+    if not opt: continue
+    if opt == 'pub' or opt == 'priv':
+      mode = opt
+      continue
+    elif opt.isnumeric():
+      key_sz = int(opt)
+
+  keydir= yaml_pp_vars[key_store]
+  if not os.path.isdir(keydir): os.mkdir(keydir)
+  if os.path.isfile(keydir + "/" + store) and os.path.isfile(keydir + '/' + store + '.pub'):
+    with open(keydir + "/" + store,'r') as fp:
+      private_key = fp.read().strip()
+    with open(keydir + "/" + store + '.pub','r') as fp:
+      public_key = fp.read().strip()
+  else:
+    key = rsa.generate_private_key(
+        backend=crypto_default_backend(),
+        public_exponent=65537,
+        key_size=key_sz
+    )
+    private_key = key.private_bytes(
+        crypto_serialization.Encoding.PEM,
+        crypto_serialization.PrivateFormat.TraditionalOpenSSL,
+        crypto_serialization.NoEncryption()
+    ).decode('ascii')
+    public_key = key.public_key().public_bytes(
+        crypto_serialization.Encoding.OpenSSH,
+        crypto_serialization.PublicFormat.OpenSSH
+    ).decode('ascii')
+    with open(keydir + "/" + store,'w') as fp:
+      fp.write(private_key + "\n")
+    with open(keydir + "/" + store + '.pub','w') as fp:
+      fp.write(public_key + "\n")
+
+  if mode == 'pub':
+    okey = public_key
+  else:
+    okey = private_key
+
+  lines = []
+
+  for part in okey.split("\n"):
+    lines.append(line[:len(mv.group(1))]  + part + line[len(mv.group(0)):])
+
+  return "\n".join(lines)
+
+pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+
+def pwgen(line):
+  secrets = None
+  mv = pwgen_re.match(line)
+  if not mv: return line
+
+  if mv.group(1)[-1] == '$':
+    return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
+
+  store = mv.group(2)
+  pwlen = 12
+  encode = ''
+  for opt in mv.group(3).split(':'):
+    if not opt: continue
+    if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512' or opt == 'vnc':
+      encode = opt
+    elif opt.isnumeric():
+      pwlen = int(opt)
+
+  if secrets is None:
+    if os.path.isfile(yaml_pp_vars[secrets_file]):
+      with open(yaml_pp_vars[secrets_file],'r') as fp:
+        secrets = yaml.safe_load(fp)
+    else:
+      secrets = {}
+
+  if store in secrets:
+    passwd = secrets[store]
+  else:
+    charset = string.ascii_lowercase + string.ascii_uppercase + string.digits
+    passwd = ''.join(random.sample(charset, pwlen))
+    secrets[store] = passwd
+    with open(yaml_pp_vars[secrets_file],'w') as fp:
+      fp.write(yaml.dump(secrets))
+    print('Generated password for {store} as {passwd}'.format(store=store,passwd=passwd))
+
+  if encode == 'MD5':
+    cpassw = md5_crypt.hash(passwd)
+  elif encode == 'SHA256':
+    cpassw = sha256_crypt.hash(passwd,rounds=5000)
+  elif encode == 'SHA512':
+    cpassw = sha512_crypt.hash(passwd,rounds=5000)
+  elif encode == 'vnc':
+    cpassw = d3des(passwd)
+  else:
+    cpassw = passwd
+
+  return line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
+
+define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+ifndef_re = re.compile(r'^\s*#\s*ifndef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+else_re = re.compile(r'^\s*#\s*else\s*')
+endif_re = re.compile(r'^\s*#\s*endif\s*')
+
 def yaml_pp(fname, prefix = '', prev = None):
   txt = ''
   prefix2 = prefix.replace('-',' ')
+  cond_stack = []
 
   fname = yaml_findfile(fname, prev)
 
@@ -114,6 +243,47 @@ def yaml_pp(fname, prefix = '', prev = None):
     for line in f:
       if line.endswith("\n"): line = line[:-1]
       if line.endswith("\r"): line = line[:-1]
+      if len(cond_stack):
+        # In Conditional
+        mv = else_re.match(line)
+        if mv:
+          # It is an else match...
+          cond_stack[0] = not cond_stack[0]
+          continue
+        mv = endif_re.match(line)
+        if mv:
+          # It is an endif match... so pop the stack!
+          cond_stack = cond_stack[1:]
+          continue
+        if not cond_stack[0]:
+          # supressing output...
+          mv = ifdef_re.match(line)
+          if mv:
+            # handle a nested ifdef
+            cond_stack.insert(0,False)
+            continue
+          mv = ifndef_re.match(line)
+          if mv:
+            # handle a nested ifndef
+            cond_stack.insert(0,False)
+            continue
+          continue
+
+      mv = ifdef_re.match(line)
+      if mv:
+        if mv.group(1) in yaml_pp_vars:
+          cond_stack.insert(0,True)
+        else:
+          cond_stack.insert(0,False)  
+        continue
+      mv = ifndef_re.match(line)
+      if mv:
+        if mv.group(1) in yaml_pp_vars:
+          cond_stack.insert(0,False)
+        else:
+          cond_stack.insert(0,True)  
+        continue
+        
       mv = define_re.match(line)
       if mv:
         yaml_pp_vars[mv.group(1)] = line[mv.end():].format(**yaml_pp_vars)
@@ -129,7 +299,9 @@ def yaml_pp(fname, prefix = '', prev = None):
           txt += yaml_pp(mv['file'], prefix = prefix2+mv['prefix'], prev=fname)
         continue
 
-      txt += prefix + line.format(**yaml_pp_vars) + "\n"
+      line = prefix + line.format(**yaml_pp_vars)
+
+      txt += sshkeygen(pwgen(line)) + "\n"
       prefix = prefix2
 
   return txt

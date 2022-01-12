@@ -1,0 +1,5 @@
+#
+# Include this in `runcmd` section of `user_data`:
+#
+- "sed -i~ -e 's/^.*AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config"
+- service sshd restart
