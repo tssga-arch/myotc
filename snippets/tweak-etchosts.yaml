@@ -1,0 +1,5 @@
+#
+# Include this in `runcmd` section of `user_data`:
+#
+# Fix /etc/hosts
+- sed -i~ -e 's/^127\.0\.0\.1\s*.*$/127.0.0.1 localhost '$(uname -n)'/' /etc/hosts

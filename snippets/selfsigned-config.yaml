@@ -1,0 +1,12 @@
+#
+# Include this before vhost configs...
+#
+#ifndef selfsigned_config
+#define selfsigned_config
+ #ifndef ca_root
+ #define ca_root /etc/ssl/selfsigned
+ #endif
+ #ifndef selfsigned_cmd
+ #define selfsigned_cmd /usr/local/bin/selfsigned
+ #endif
+#ednif
