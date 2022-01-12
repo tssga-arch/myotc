@@ -36,8 +36,9 @@ def new_vol(vol_name, dryrun=True, **kw):
 
   cvol = find_volume(c, vol_name)
   if cvol is None:
+    # Make sure size is there...
     if not 'size' in kw:
-      print('Can not create volume {} (Missing size)'.format(vol_name))
+      print('Unable to create volume {}. "size" not specified'.format(vol_name))
       return None
     cvol = c.block_store.create_volume(name=vol_name, **kw)
     c.block_store.wait_for_status(cvol,
@@ -537,8 +538,8 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
           continue
       vol_name = gen_name(v_id_or_name, name[len(sid)+1:]+'-v')
       v = new_vol(vol_name, dryrun=dryrun, **kw['vols'][v_id_or_name])
-      if v is None: continue
-      v_x[v['id']] = v
+      if not v is None:
+        v_x[v['id']] = v
 
     root_device = server['root_device_name']
     for av in server['attached_volumes']:
