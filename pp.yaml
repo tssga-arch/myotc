@@ -6,7 +6,7 @@
 x{ABC}: 433
 
 balh:
- #include demo1.yaml
+ #include demo2.yaml
 cheh:
  - content: |
      #include --raw vars.bat
@@ -14,9 +14,8 @@ cheh:
 
 base64: |
   #include --bin vars.bat
-
-xyz:
-   #include demo1.yaml
+  #exec ls -l
+     #include demo1/more_demo.yaml
 
 oh: {ABC}
 home: {HOME}
