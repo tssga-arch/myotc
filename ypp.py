@@ -6,6 +6,7 @@ import re
 import os
 import random
 import string
+import subprocess
 from d3des import encrypt as d3des
 from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 from cryptography.hazmat.primitives import serialization as crypto_serialization
@@ -231,6 +232,8 @@ ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 ifndef_re = re.compile(r'^\s*#\s*ifndef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 else_re = re.compile(r'^\s*#\s*else\s*')
 endif_re = re.compile(r'^\s*#\s*endif\s*')
+exec_re = re.compile(r'^(\s*)#\s*exec\s+(.*)$')
+
 
 def yaml_pp(fname, prefix = '', prev = None):
   txt = ''
@@ -274,16 +277,16 @@ def yaml_pp(fname, prefix = '', prev = None):
         if mv.group(1) in yaml_pp_vars:
           cond_stack.insert(0,True)
         else:
-          cond_stack.insert(0,False)  
+          cond_stack.insert(0,False)
         continue
       mv = ifndef_re.match(line)
       if mv:
         if mv.group(1) in yaml_pp_vars:
           cond_stack.insert(0,False)
         else:
-          cond_stack.insert(0,True)  
+          cond_stack.insert(0,True)
         continue
-        
+
       mv = define_re.match(line)
       if mv:
         yaml_pp_vars[mv.group(1)] = line[mv.end():].format(**yaml_pp_vars)
@@ -297,6 +300,25 @@ def yaml_pp(fname, prefix = '', prev = None):
           txt += yaml_bin(mv['file'], prefix = prefix2+mv['prefix'], prev=fname)
         else:
           txt += yaml_pp(mv['file'], prefix = prefix2+mv['prefix'], prev=fname)
+        continue
+
+      mv = exec_re.match(line)
+      if mv:
+        cwd = os.path.dirname(fname)
+        if cwd == '': cwd=None
+        rc = subprocess.run(mv.group(2),
+                            capture_output=True,
+                            shell=True,
+                            text=True,
+                            cwd=cwd)
+        if rc.returncode != 0:
+          sys.stderr.write('Command: {cmd} exited status {st}\n'.format(
+                            cmd=mv.group(1),
+                            st=rc.returncode))
+        if rc.stderr != '': sys.stderr.write(rc.stderr)
+        for i in rc.stdout.split('\n'):
+          txt += prefix + mv.group(1) + i +'\n'
+
         continue
 
       line = prefix + line.format(**yaml_pp_vars)
