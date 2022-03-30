@@ -8,10 +8,13 @@ import random
 import string
 import subprocess
 from d3des import encrypt as d3des
-from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
-from cryptography.hazmat.primitives import serialization as crypto_serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.backends import default_backend as crypto_default_backend
+try:
+  from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
+  from cryptography.hazmat.primitives import serialization as crypto_serialization
+  from cryptography.hazmat.primitives.asymmetric import rsa
+  from cryptography.hazmat.backends import default_backend as crypto_default_backend
+except ImportError:
+  pass
 
 ###################################################################
 #
