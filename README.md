@@ -30,6 +30,8 @@ Pre-process syntax:
   - `$PWGEN:store:SHA256:len$
   - `$PWGEN:store:SHA512:len$
     - Generate a password and encode it using SHA256 or SHA512 hashes.
+  - `$PWGEN:store:vnc:len$
+    - Generate a password and encode it using VNC password format.
   - `$$` PWGEN ...
     - Escape password generator
 - ssh key generator:
