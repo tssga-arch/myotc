@@ -7,6 +7,7 @@ import os
 import random
 import string
 import subprocess
+import json
 from d3des import encrypt as d3des
 try:
   from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -339,7 +340,7 @@ def yparse_cmd(args):
     else:
       ytxt = open(args.file, 'r')
     res = yaml.safe_load(ytxt)
-    print(res)
+    print(json.dumps(res))
   else:
     yaml_init(args.include, args.define)
     txt = yaml_pp(args.file)
