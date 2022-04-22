@@ -128,3 +128,21 @@ nets:
             - service slim start
             # Set-up itop
             # - sh /root/setup.sh
+
+# wget https://git.io/fxZq5 -O guac-install.sh
+# bash ./guac-install.sh --mysqlpwd password --guacpwd password --nomfa --installmysql
+# a2enmod proxy
+# a2enmod proxy_http
+#  a2enmod proxy_wstunnel
+# <Location /guacamole/>
+    # Order allow,deny
+    # Allow from all
+    # ProxyPass http://HOSTNAME:8080/guacamole/ flushpackets=on
+    # ProxyPassReverse http://HOSTNAME:8080/guacamole/
+# </Location>
+# <Location /guacamole/websocket-tunnel>
+    # Order allow,deny
+    # Allow from all
+    # ProxyPass ws://HOSTNAME:8080/guacamole/websocket-tunnel
+    # ProxyPassReverse ws://HOSTNAME:8080/guacamole/websocket-tunnel
+# </Location>
