@@ -22,7 +22,7 @@ nets:
   1:
     vms:
       1:
-        image: Standard_Ubuntu_20.02_latest
+        image: Standard_Ubuntu_20.04_latest
         flavor: s3.large.2
         eip: True
         sg:
@@ -96,7 +96,7 @@ nets:
              path: /root/.vncpasswd
              permissions: '0644'
              encoding: b64
-             content: pSlkljF2XTI=
+             content: $PWGEN:linux:vnc:{DEFPWLEN}$
 
           users:
           - name: linux
@@ -125,17 +125,6 @@ nets:
             - a2enmod ssl
             - service apache2 restart
 
-           - service slim start
-###########################################################
-          runcmd:
-
+            - service slim start
             # Set-up itop
             # - sh /root/setup.sh
-        vols:
-          1: {{ size: 20 }}
-          write_files:
-           - owner: root:root
-             path: /root/setup.sh
-             permissions: '0755'
-             content: |
-               ###include --raw setup-itop.sh
