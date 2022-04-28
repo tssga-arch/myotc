@@ -76,10 +76,18 @@ nets:
 
            - tigervnc-xorg-extension
            - slim
+           
+           - xrdp
 
            - apache2
           write_files:
+           #define vhost_conf_only
            #include apache2/vhost-ssl.yaml
+           - owner: root:root
+             path: {vhost_conf_dir}/{vhost_fqdn}.conf
+             permissions: '0644'
+             content: |
+               #include ts-vhost.conf
            - owner: root:root
              path: /etc/X11/xorg.conf
              permissions: '0644'
@@ -126,23 +134,14 @@ nets:
             - service apache2 restart
 
             - service slim start
-            # Set-up itop
-            # - sh /root/setup.sh
+            
+            # Install guacamole using https://github.com/MysticRyuujin/guac-install
+            # git.io/fxZq5 -> https://raw.githubusercontent.com/MysticRyuujin/guac-install/master/guac-install.sh
+            - wget https://git.io/fxZq5 -O /root/guac-install.sh
+            - bash /root/guac-install.sh --mysqlpwd "$PWGEN:mysql:{DEFPWLEN}$" --guacpwd "$PWGEN:guacpwd:{DEFPWLEN}$" --nomfa --installmysql
+            - a2enmod proxy
+            - a2enmod proxy_http
+            - a2enmod proxy_wstunnel
+            - systemctl restart apache2
 
-# wget https://git.io/fxZq5 -O guac-install.sh
-# bash ./guac-install.sh --mysqlpwd password --guacpwd password --nomfa --installmysql
-# a2enmod proxy
-# a2enmod proxy_http
-#  a2enmod proxy_wstunnel
-# <Location /guacamole/>
-    # Order allow,deny
-    # Allow from all
-    # ProxyPass http://HOSTNAME:8080/guacamole/ flushpackets=on
-    # ProxyPassReverse http://HOSTNAME:8080/guacamole/
-# </Location>
-# <Location /guacamole/websocket-tunnel>
-    # Order allow,deny
-    # Allow from all
-    # ProxyPass ws://HOSTNAME:8080/guacamole/websocket-tunnel
-    # ProxyPassReverse ws://HOSTNAME:8080/guacamole/websocket-tunnel
-# </Location>
+
