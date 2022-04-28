@@ -186,50 +186,51 @@ pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
 def pwgen(line):
   secrets = None
   mv = pwgen_re.match(line)
-  if not mv: return line
+  while mv:
+    if mv.group(1)[-1] == '$':
+      return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
 
-  if mv.group(1)[-1] == '$':
-    return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
+    store = mv.group(2)
+    pwlen = 12
+    encode = ''
+    for opt in mv.group(3).split(':'):
+      if not opt: continue
+      if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512' or opt == 'vnc':
+        encode = opt
+      elif opt.isnumeric():
+        pwlen = int(opt)
 
-  store = mv.group(2)
-  pwlen = 12
-  encode = ''
-  for opt in mv.group(3).split(':'):
-    if not opt: continue
-    if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512' or opt == 'vnc':
-      encode = opt
-    elif opt.isnumeric():
-      pwlen = int(opt)
+    if secrets is None:
+      if os.path.isfile(yaml_pp_vars[secrets_file]):
+        with open(yaml_pp_vars[secrets_file],'r') as fp:
+          secrets = yaml.safe_load(fp)
+      else:
+        secrets = {}
 
-  if secrets is None:
-    if os.path.isfile(yaml_pp_vars[secrets_file]):
-      with open(yaml_pp_vars[secrets_file],'r') as fp:
-        secrets = yaml.safe_load(fp)
+    if store in secrets:
+      passwd = secrets[store]
     else:
-      secrets = {}
+      charset = string.ascii_lowercase + string.ascii_uppercase + string.digits
+      passwd = ''.join(random.sample(charset, pwlen))
+      secrets[store] = passwd
+      with open(yaml_pp_vars[secrets_file],'w') as fp:
+        fp.write(yaml.dump(secrets))
+      print('Generated password for {store} as {passwd}'.format(store=store,passwd=passwd))
 
-  if store in secrets:
-    passwd = secrets[store]
-  else:
-    charset = string.ascii_lowercase + string.ascii_uppercase + string.digits
-    passwd = ''.join(random.sample(charset, pwlen))
-    secrets[store] = passwd
-    with open(yaml_pp_vars[secrets_file],'w') as fp:
-      fp.write(yaml.dump(secrets))
-    print('Generated password for {store} as {passwd}'.format(store=store,passwd=passwd))
+    if encode == 'MD5':
+      cpassw = md5_crypt.hash(passwd)
+    elif encode == 'SHA256':
+      cpassw = sha256_crypt.hash(passwd,rounds=5000)
+    elif encode == 'SHA512':
+      cpassw = sha512_crypt.hash(passwd,rounds=5000)
+    elif encode == 'vnc':
+      cpassw = d3des(passwd)
+    else:
+      cpassw = passwd
 
-  if encode == 'MD5':
-    cpassw = md5_crypt.hash(passwd)
-  elif encode == 'SHA256':
-    cpassw = sha256_crypt.hash(passwd,rounds=5000)
-  elif encode == 'SHA512':
-    cpassw = sha512_crypt.hash(passwd,rounds=5000)
-  elif encode == 'vnc':
-    cpassw = d3des(passwd)
-  else:
-    cpassw = passwd
-
-  return line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
+    line = line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
+    mv = pwgen_re.match(line)
+  return line
 
 define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
