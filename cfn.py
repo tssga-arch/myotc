@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import openstack
 import sys
+import os
 
 CLOUD = 0
 SID = 1
@@ -28,7 +29,9 @@ def pprint(z):
   cf[CLOUD].pprint(z)
 
 def my_otc(sid = None):
-  cf[CLOUD] = openstack.connect(cloud='otc')
+  # ~ print(sys.env["HOME"])
+  auth = os.getenv('CLOUD','otc')
+  cf[CLOUD] = openstack.connect(cloud=auth)
   cf[SID] = sid
   return cf[CLOUD]
 

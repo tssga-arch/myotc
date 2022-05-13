@@ -90,3 +90,6 @@ Pre-processor conditionals:
   following command from `/etc/rc.local` seems to work:
   - `systemd-resolve --set-domain=domain --interface=ens3`
 
+***
+Use environment variable "CLOUD" to pick credentials from config files.
+
