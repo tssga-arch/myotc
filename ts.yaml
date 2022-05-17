@@ -143,5 +143,12 @@ nets:
             - a2enmod proxy_http
             - a2enmod proxy_wstunnel
             - systemctl restart apache2
+            
+            # See https://linuxize.com/post/how-to-install-xrdp-on-ubuntu-20-04/
+            # Are these neded for xrdp?
+            # install ssl-cert
+            # adduser xrdp ssl-cert
+            # Edit /etc/xrdp.ini
+            
 
 
