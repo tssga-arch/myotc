@@ -9,7 +9,7 @@
 #define acme_domains -d {vhost_fqdn}
 #include sslh-config.yaml
 
-#define USE_ACME
+#define NOT_USE_ACME
 #ifdef USE_ACME
  #include acme-config.yaml
 #else
@@ -145,10 +145,10 @@ nets:
             - systemctl restart apache2
             
             # See https://linuxize.com/post/how-to-install-xrdp-on-ubuntu-20-04/
-            # Are these neded for xrdp?
-            # install ssl-cert
-            # adduser xrdp ssl-cert
-            # Edit /etc/xrdp.ini
+            # These are not needed
+            #  install ssl-cert
+            #  adduser xrdp ssl-cert
+            #  Edit /etc/xrdp.ini
             
 
 

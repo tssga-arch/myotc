@@ -31,10 +31,22 @@ valid_re = re.compile(r'^[_A-Za-z][_A-Za-z0-9]*$')
 
 def yaml_init(inc_path, predef):
   if not secrets_file in yaml_pp_vars:
-    yaml_pp_vars[secrets_file] = '_secrets.yaml'
+    if os.path.isfile('_secrets.yaml'):
+      yaml_pp_vars[secrets_file] = '_secrets.yaml'
+    elif os.path.isfile('../secrets/_secrets.yaml'):
+      yaml_pp_vars[secrets_file] = '../secrets/_secrets.yaml'
+    else:
+      yaml_pp_vars[secrets_file] = '_secrets.yaml'
   if not key_store in yaml_pp_vars:
-    yaml_pp_vars[key_store] = '_keys_'
-
+    if os.path.isdir('_keys_'):
+      yaml_pp_vars[key_store] = '_keys_'
+    elif os.path.isdir('../secrets'):
+      yaml_pp_vars[key_store] = '../secrets'
+    else:
+      yaml_pp_vars[key_store] = '_keys_'
+  # ~ print("secrets_file: "+yaml_pp_vars[secrets_file])
+  # ~ print("key_store: " + yaml_pp_vars[key_store])
+  
   if inc_path:
     for inc in inc_path:
       if os.path.isdir(inc):
