@@ -7,6 +7,7 @@ import os
 import random
 import string
 import subprocess
+import json
 from d3des import encrypt as d3des
 try:
   from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -30,10 +31,22 @@ valid_re = re.compile(r'^[_A-Za-z][_A-Za-z0-9]*$')
 
 def yaml_init(inc_path, predef):
   if not secrets_file in yaml_pp_vars:
-    yaml_pp_vars[secrets_file] = '_secrets.yaml'
+    if os.path.isfile('_secrets.yaml'):
+      yaml_pp_vars[secrets_file] = '_secrets.yaml'
+    elif os.path.isfile('../secrets/_secrets.yaml'):
+      yaml_pp_vars[secrets_file] = '../secrets/_secrets.yaml'
+    else:
+      yaml_pp_vars[secrets_file] = '_secrets.yaml'
   if not key_store in yaml_pp_vars:
-    yaml_pp_vars[key_store] = '_keys_'
-
+    if os.path.isdir('_keys_'):
+      yaml_pp_vars[key_store] = '_keys_'
+    elif os.path.isdir('../secrets'):
+      yaml_pp_vars[key_store] = '../secrets'
+    else:
+      yaml_pp_vars[key_store] = '_keys_'
+  # ~ print("secrets_file: "+yaml_pp_vars[secrets_file])
+  # ~ print("key_store: " + yaml_pp_vars[key_store])
+  
   if inc_path:
     for inc in inc_path:
       if os.path.isdir(inc):
@@ -185,50 +198,51 @@ pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
 def pwgen(line):
   secrets = None
   mv = pwgen_re.match(line)
-  if not mv: return line
+  while mv:
+    if mv.group(1)[-1] == '$':
+      return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
 
-  if mv.group(1)[-1] == '$':
-    return line[:len(mv.group(1))-1] + line[len(mv.group(1)):]
+    store = mv.group(2)
+    pwlen = 12
+    encode = ''
+    for opt in mv.group(3).split(':'):
+      if not opt: continue
+      if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512' or opt == 'vnc':
+        encode = opt
+      elif opt.isnumeric():
+        pwlen = int(opt)
 
-  store = mv.group(2)
-  pwlen = 12
-  encode = ''
-  for opt in mv.group(3).split(':'):
-    if not opt: continue
-    if opt == 'MD5' or opt == 'SHA256' or opt == 'SHA512' or opt == 'vnc':
-      encode = opt
-    elif opt.isnumeric():
-      pwlen = int(opt)
+    if secrets is None:
+      if os.path.isfile(yaml_pp_vars[secrets_file]):
+        with open(yaml_pp_vars[secrets_file],'r') as fp:
+          secrets = yaml.safe_load(fp)
+      else:
+        secrets = {}
 
-  if secrets is None:
-    if os.path.isfile(yaml_pp_vars[secrets_file]):
-      with open(yaml_pp_vars[secrets_file],'r') as fp:
-        secrets = yaml.safe_load(fp)
+    if store in secrets:
+      passwd = secrets[store]
     else:
-      secrets = {}
+      charset = string.ascii_lowercase + string.ascii_uppercase + string.digits
+      passwd = ''.join(random.sample(charset, pwlen))
+      secrets[store] = passwd
+      with open(yaml_pp_vars[secrets_file],'w') as fp:
+        fp.write(yaml.dump(secrets))
+      print('Generated password for {store} as {passwd}'.format(store=store,passwd=passwd))
 
-  if store in secrets:
-    passwd = secrets[store]
-  else:
-    charset = string.ascii_lowercase + string.ascii_uppercase + string.digits
-    passwd = ''.join(random.sample(charset, pwlen))
-    secrets[store] = passwd
-    with open(yaml_pp_vars[secrets_file],'w') as fp:
-      fp.write(yaml.dump(secrets))
-    print('Generated password for {store} as {passwd}'.format(store=store,passwd=passwd))
+    if encode == 'MD5':
+      cpassw = md5_crypt.hash(passwd)
+    elif encode == 'SHA256':
+      cpassw = sha256_crypt.hash(passwd,rounds=5000)
+    elif encode == 'SHA512':
+      cpassw = sha512_crypt.hash(passwd,rounds=5000)
+    elif encode == 'vnc':
+      cpassw = d3des(passwd)
+    else:
+      cpassw = passwd
 
-  if encode == 'MD5':
-    cpassw = md5_crypt.hash(passwd)
-  elif encode == 'SHA256':
-    cpassw = sha256_crypt.hash(passwd,rounds=5000)
-  elif encode == 'SHA512':
-    cpassw = sha512_crypt.hash(passwd,rounds=5000)
-  elif encode == 'vnc':
-    cpassw = d3des(passwd)
-  else:
-    cpassw = passwd
-
-  return line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
+    line = line[:len(mv.group(1))]  + cpassw + line[len(mv.group(0)):]
+    mv = pwgen_re.match(line)
+  return line
 
 define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
@@ -339,7 +353,7 @@ def yparse_cmd(args):
     else:
       ytxt = open(args.file, 'r')
     res = yaml.safe_load(ytxt)
-    print(res)
+    print(json.dumps(res))
   else:
     yaml_init(args.include, args.define)
     txt = yaml_pp(args.file)

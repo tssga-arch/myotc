@@ -30,6 +30,8 @@ Pre-process syntax:
   - `$PWGEN:store:SHA256:len$
   - `$PWGEN:store:SHA512:len$
     - Generate a password and encode it using SHA256 or SHA512 hashes.
+  - `$PWGEN:store:vnc:len$
+    - Generate a password and encode it using VNC password format.
   - `$$` PWGEN ...
     - Escape password generator
 - ssh key generator:
@@ -87,4 +89,7 @@ Pre-processor conditionals:
   suggest a solution that doesn't work.  On `ubuntu 20.04`, running the
   following command from `/etc/rc.local` seems to work:
   - `systemd-resolve --set-domain=domain --interface=ens3`
+
+***
+Use environment variable "CLOUD" to pick credentials from config files.
 
