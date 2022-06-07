@@ -45,15 +45,17 @@ def new_vol(vol_name, dryrun=True, **kw):
                                   status='available',
                                   failures=['error'],
                                   interval=5,
+
                                   wait=120)
     print('Created volume {}'.format(cvol['name']))
   else:
     if cvol['size'] != kw['size']:
       # Volume has been resized...
-      if dryrun:
-        print('WONT resize volume {}'.format(volname))
-      else:
-        print('TODO: VOLUME RESIZING IS NOT IMPLEMENTED!')
+      if int(kw['size']) < int(cvol['size']):
+        print('Not possible to reduce size of volume {}'.format(vol_name))
+        return cvol
+      print('Resizing volume {}'.format(vol_name))
+      cvol.extend(c.block_store, int(kw['size']))
   return cvol
 
 def flatten_rules(rule_lst):
@@ -458,7 +460,7 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
     if yaml.dump(nc) != yaml.dump(oc):
       if dryrun:
         print('WONT recreate vm {} settings changing'.format(name))
-        print(args)
+        # ~ print(args)
       else:
         # We destroy the server and re-create it...
         c.compute.delete_server(server['id'])
@@ -467,6 +469,42 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
         server = c.compute.create_server(**args)
         server = c.compute.wait_for_server(server)
         print('Created server {}'.format(args['name']))
+
+  if 'image_size' in kw:
+    # We may need to resize image volume
+    for vid in server['attached_volumes']:
+      vdat = c.block_store.get_volume(vid['id'])
+      if not 'is_bootable' in vdat: continue
+      if not 'volume_image_metadata' in vdat: continue
+      if not vdat['is_bootable']: continue
+      if not 'image_name' in vdat['volume_image_metadata']: continue
+      if vdat['volume_image_metadata']['image_name'] != image_name: continue
+
+      # From here on we consider this volume the boot volume
+      if not 'min_disk' in vdat['volume_image_metadata']: break
+      if int(kw['image_size']) < int(vdat['volume_image_metadata']['min_disk']):
+        print('Ignoring {vname} image_size:{size} < min_disk:{mind}'.format(
+              vname = name,
+              size = kw['image_size'],
+              mind = vdat['volume_image_metadata']['min_disk'],
+            ))
+        break
+      if not 'size' in vdat: break
+      if int(kw['image_size']) != int(vdat['size']):
+        if int(kw['image_size']) < int(vdat['size']):
+            print('Unable resize image volume for {name} from {csize} => {tsize}'.format(
+                    name  = name,
+                    csize = int(vdat['size']),
+                    tsize = int(kw['image_size']),
+                  ))
+            break
+        print('Resizing image volume for {name} from {csize} to {tsize}'.format(
+                  name  = name,
+                  csize = int(vdat['size']),
+                  tsize = int(kw['image_size']),
+                ))
+        # must resize image volume
+        vdat.extend(c.block_store,int(kw['image_size']))
 
   # update internal DNS zone...
   rrs = { 'A': [], 'AAAA': [] }
