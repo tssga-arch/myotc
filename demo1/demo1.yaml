@@ -18,6 +18,7 @@ nets:
     vms:
       1:
         image: Standard_Ubuntu_20.04_latest
+        image_size: 10
         flavor: s3.medium.1
         eip: True
         sg: common
@@ -56,8 +57,8 @@ nets:
         eip: True
         sg: common
         vols:
-          1: {{ size: 2 }}
-          2: {{ size: 4 }}
+          1: {{ size: 4 }}
+          2: {{ size: 2 }}
           volume-8d36: {{ size: 2 }}
         user_data:
           # Do apt-get update
