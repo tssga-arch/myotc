@@ -80,6 +80,10 @@ nets:
            - xrdp
 
            - apache2
+
+           - dbus-x11
+
+
           write_files:
            #define vhost_conf_only
            #include apache2/vhost-ssl.yaml
