@@ -1,7 +1,7 @@
 #
 # Create a test desktop
 #
-#define SID ts1
+#define SID ts3
 #define DEFPWLEN 12
 #define ext_domain otc1.cloudkit7.xyz
 #define vhost_fqdn {SID}.{ext_domain}
@@ -23,6 +23,7 @@ nets:
     vms:
       1:
         image: Standard_Ubuntu_20.04_latest
+        image_size: 16
         flavor: s3.large.2
         eip: True
         sg:
@@ -43,6 +44,7 @@ nets:
            - python3-venv
            - zip
            - sslh
+           - dos2unix
 
            - xfce4
            - xfce4-goodies
@@ -73,16 +75,13 @@ nets:
            - xclip
            - tigervnc-standalone-server
            - tigervnc-common
-
            - tigervnc-xorg-extension
-           - slim
-           
+
            - xrdp
-
-           - apache2
-
+           - xorgxrdp
            - dbus-x11
 
+           - apache2
 
           write_files:
            #define vhost_conf_only
@@ -93,22 +92,34 @@ nets:
              content: |
                #include ts-vhost.conf
            - owner: root:root
-             path: /etc/X11/xorg.conf
-             permissions: '0644'
+             path: /root/linux-key
+             permissions: '0600'
              content: |
-              Section "Module"
-               Load "vnc"
-              EndSection
-              Section "Screen"
-               Identifier "Screen0"
-               Option "UserPasswdVerifier" "VncAuth"
-               Option "PasswordFile" "/root/.vncpasswd"
-              EndSection
+               $KEYGEN:linux:priv$
            - owner: root:root
-             path: /root/.vncpasswd
-             permissions: '0644'
-             encoding: b64
-             content: $PWGEN:linux:vnc:{DEFPWLEN}$
+             path: /root/netrc
+             permissions: '0600'
+             content: |
+              machine gitlab.devops.telekom.de
+                login alejandrol
+                password $PWGEN:gitlab:{DEFPWLEN}$
+           #~ - owner: root:root
+             #~ path: /etc/X11/xorg.conf
+             #~ permissions: '0644'
+             #~ content: |
+              #~ Section "Module"
+               #~ Load "vnc"
+              #~ EndSection
+              #~ Section "Screen"
+               #~ Identifier "Screen0"
+               #~ Option "UserPasswdVerifier" "VncAuth"
+               #~ Option "PasswordFile" "/root/.vncpasswd"
+              #~ EndSection
+           #~ - owner: root:root
+             #~ path: /root/.vncpasswd
+             #~ permissions: '0644'
+             #~ encoding: b64
+             #~ content: $PWGEN:linux:vnc:{DEFPWLEN}$
 
           users:
           - name: linux
@@ -137,22 +148,20 @@ nets:
             - a2enmod ssl
             - service apache2 restart
 
-            - service slim start
-            
             # Install guacamole using https://github.com/MysticRyuujin/guac-install
             # git.io/fxZq5 -> https://raw.githubusercontent.com/MysticRyuujin/guac-install/master/guac-install.sh
-            - wget https://git.io/fxZq5 -O /root/guac-install.sh
-            - bash /root/guac-install.sh --mysqlpwd "$PWGEN:mysql:{DEFPWLEN}$" --guacpwd "$PWGEN:guacpwd:{DEFPWLEN}$" --nomfa --installmysql
-            - a2enmod proxy
-            - a2enmod proxy_http
-            - a2enmod proxy_wstunnel
+            #- wget https://git.io/fxZq5 -O /root/guac-install.sh
+            #- bash /root/guac-install.sh --mysqlpwd "$PWGEN:mysql:{DEFPWLEN}$" --guacpwd "$PWGEN:guacpwd:{DEFPWLEN}$" --nomfa --installmysql
+            #- a2enmod proxy
+            #- a2enmod proxy_http
+            #- a2enmod proxy_wstunnel
             - systemctl restart apache2
-            
+
             # See https://linuxize.com/post/how-to-install-xrdp-on-ubuntu-20-04/
             # These are not needed
             #  install ssl-cert
             #  adduser xrdp ssl-cert
             #  Edit /etc/xrdp.ini
-            
+
 
 
