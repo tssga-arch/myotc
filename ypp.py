@@ -46,7 +46,7 @@ def yaml_init(inc_path, predef):
       yaml_pp_vars[key_store] = '_keys_'
   # ~ print("secrets_file: "+yaml_pp_vars[secrets_file])
   # ~ print("key_store: " + yaml_pp_vars[key_store])
-  
+
   if inc_path:
     for inc in inc_path:
       if os.path.isdir(inc):
@@ -216,6 +216,7 @@ def pwgen(line):
       if os.path.isfile(yaml_pp_vars[secrets_file]):
         with open(yaml_pp_vars[secrets_file],'r') as fp:
           secrets = yaml.safe_load(fp)
+        if not secrets: secrets = {} # Handle empty files
       else:
         secrets = {}
 
