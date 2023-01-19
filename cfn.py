@@ -19,7 +19,8 @@ cf = [
   None, None, None, None,
   'Standard_CentOS_8_latest', 's3.medium.2',
   [ '100.125.4.25', '100.125.129.199' ],
-  'otc1.cloudkit7.xyz.', 'nova.', '10.{id_hi}.{id_lo}.0/24'
+  os.getenv('DEFAULT_PUBLIC_DOMAIN','otc1.cloudkit7.xyz.'),
+  'nova.', '10.{id_hi}.{id_lo}.0/24'
 ]
 
 def defaults(index, value):

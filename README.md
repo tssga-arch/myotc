@@ -68,6 +68,11 @@ Pre-processor conditionals:
 - [OTC public services](https://imagefactory.otc.t-systems.com/home/public-services-in-otc)
 - [cloud init examples](https://cloudinit.readthedocs.io/en/latest/topics/examples.html)
 
+# Environment variables
+
+- CLOUD : cloud to connect to (as defined by config file)
+- DEFAULT_PUBLIC_DOMAIN : Domain to create public DNS records
+
 # TODO
 
 - change server system disk size
