@@ -22,6 +22,8 @@ cf = [
   os.getenv('DEFAULT_PUBLIC_DOMAIN','otc1.cloudkit7.xyz.'),
   'nova.', '10.{id_hi}.{id_lo}.0/24'
 ]
+if not cf[DEFAULT_PUBLIC_DNS_ZONE].endswith('.'):
+  cf[DEFAULT_PUBLIC_DNS_ZONE] += '.'
 
 def defaults(index, value):
   cf[index] = value
