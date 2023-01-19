@@ -133,6 +133,16 @@ def nuke(c, sid, doIt = False, def_priv_zone='localnet', def_public_zone='public
       c.dns.delete_zone(idnsz)
       print('Deleted internal DNS zone {}'.format(zname))
 
+  # Delete network security groups
+  for g in c.network.security_groups():
+    if 'name' in g:
+      if g['name'].startswith(prefix):
+        if dryRun:
+          print('WONT delete sg {}'.format(g['name']))
+        else:
+          c.network.delete_security_group(g['id'])
+          print('Deleted sg {}'.format(g['name']))
+
   # Delete VPCs (aka routers)
   for r in c.network.routers():
     if 'name' in r:
@@ -143,14 +153,5 @@ def nuke(c, sid, doIt = False, def_priv_zone='localnet', def_public_zone='public
           c.network.delete_router(r['id'])
           print('Deleted vpc {}'.format(r['name']))
 
-  # Delete network security groups
-  for g in c.network.security_groups():
-    if 'name' in g:
-      if g['name'].startswith(prefix):
-        if dryRun:
-          print('WONT delete sg {}'.format(g['name']))
-        else:
-          c.network.delete_security_group(g['id'])
-          print('Deleted sg {}'.format(g['name']))
 
   print('DONE')

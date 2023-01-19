@@ -580,8 +580,11 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
         v_x[v['id']] = v
 
     root_device = server['root_device_name']
+    # ~ print(root_device)
+    # ~ print(server['attached_volumes'])
     for av in server['attached_volumes']:
-      avd = c.compute.get_volume_attachment(av['id'],server)
+      print(av)
+      avd = c.compute.get_volume_attachment(server,av['id'])
       if avd['device'] == root_device: continue # We skip the root device
       v = avd['volume_id']
       if v in v_x:
