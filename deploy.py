@@ -442,6 +442,9 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
     server = c.compute.create_server(**args)
     server = c.compute.wait_for_server(server)
     print('Created server {}'.format(args['name']))
+    # Tag the server...
+    server.add_tag(c.compute, 'SID={sid}'.format(sid= sid))
+
   else:
     server = c.compute.get_server(server)
 
