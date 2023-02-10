@@ -85,7 +85,18 @@ Pre-processor conditionals:
   suggest a solution that doesn't work.  On `ubuntu 20.04`, running the
   following command from `/etc/rc.local` seems to work:
   - `systemd-resolve --set-domain=domain --interface=ens3`
+- Only VMs are tagged with SID={sid}
+  - See [ansible-tags-module](https://github.com/opentelekomcloud/ansible-collection-cloud/blob/6b1d83c0bd24318ceda0d6395c3fe4f05cb2375c/plugins/modules/tag.py)
+  - testing on network resources yield errors.  Don't know if volumes can be tagged.
+  - Sample code:
+    ```python
+      c = cf[CLOUD]
+      vm = c.compute.find_server('simp1-vm1')
+      if 'name' in vm:
+	  print(vm.name)
+	  # vm.add_tag(c.compute, 'PROJECT=kermit')
+	  i = vm.fetch_tags(c.compute)
+	  pprint(i.tags)
 
-***
-Use environment variable "CLOUD" to pick credentials from config files.
+    ```
 
