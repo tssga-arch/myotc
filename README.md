@@ -75,7 +75,6 @@ Pre-processor conditionals:
 
 # TODO
 
-- change server system disk size
 - use resize server?
 - re-org resource types?
 
@@ -93,10 +92,10 @@ Pre-processor conditionals:
       c = cf[CLOUD]
       vm = c.compute.find_server('simp1-vm1')
       if 'name' in vm:
-	  print(vm.name)
-	  # vm.add_tag(c.compute, 'PROJECT=kermit')
-	  i = vm.fetch_tags(c.compute)
-	  pprint(i.tags)
+       print(vm.name)
+       # vm.add_tag(c.compute, 'PROJECT=kermit')
+       i = vm.fetch_tags(c.compute)
+       pprint(i.tags)
 
     ```
 
