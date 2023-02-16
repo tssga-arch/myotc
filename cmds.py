@@ -12,6 +12,24 @@ from cfn import *
 #
 ###################################################################
 
+def config_from_yaml(yc):
+  ce = {
+    DEFAULT_PUBLIC_DNS_ZONE: [ 'ext_domain', 'public_domain', 'public_dns_zone' ],
+    DEFAULT_PRIVATE_DNS_ZONE: [ 'int_domain', 'private_domain', 'private_dns_zone' ],
+    DEFAULT_IMAGE: [ 'default_image' ],
+    DEFAULT_FLAVOR: [ 'default_flavor' ],
+    DEFAULT_NAME_SERVERS: [ 'default_name_servers' ],
+    DEFAULT_NET_FORMAT: [ 'default_net_format' ],
+    DEFAULT_TAGS: [ 'tags' ],
+  }
+  for k in ce:
+    for v in ce[k]:
+      if v in yc:
+        cf[k] = yc[v]
+        break
+
+  return
+
 def deploy_cmd(args):
   yc = ypp.process(args.file, args.include, args.define)
   if not 'sid' in yc:
@@ -20,6 +38,7 @@ def deploy_cmd(args):
   if not 'nets' in yc:
     print('No networks defined')
     sys.exit(1)
+  config_from_yaml(yc)
 
   sid = yc['sid']
   my_otc(sid)
@@ -68,6 +87,8 @@ def nuke_cmd(args):
     sys.exit(1)
 
   my_otc(yc['sid'])
+  config_from_yaml(yc)
+
   nukes.nuke(cf[CLOUD], cf[SID], args.execute,
         cf[DEFAULT_PRIVATE_DNS_ZONE], cf[DEFAULT_PUBLIC_DNS_ZONE])
 
@@ -82,6 +103,7 @@ def ping_cmd(args):
 
 def resolv_cmd(args):
   yc = ypp.process(args.file, args.include, args.define)
+  config_from_yaml(yc)
 
   vmorder = resolv_yaml(yc)
   if args.reverse: vmorder.reverse()
@@ -107,6 +129,7 @@ def state_cmd(args):
 
   if args.file:
     yc = ypp.process(args.file, args.include, args.define)
+    config_from_yaml(yc)
     vmorder = resolv_yaml(yc)
     if args.mode == 'stop': vmorder.reverse()
   else:

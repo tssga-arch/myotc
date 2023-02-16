@@ -251,7 +251,7 @@ ifndef_re = re.compile(r'^\s*#\s*ifndef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 else_re = re.compile(r'^\s*#\s*else\s*')
 endif_re = re.compile(r'^\s*#\s*endif\s*')
 exec_re = re.compile(r'^(\s*)#\s*exec\s+(.*)$')
-
+error_re = re.compile(r'^(\s*)#\s*error\s+(.*)$')
 
 def yaml_pp(fname, prefix = '', prev = None):
   txt = ''
@@ -338,6 +338,11 @@ def yaml_pp(fname, prefix = '', prev = None):
           txt += prefix + mv.group(1) + i +'\n'
 
         continue
+
+      mv = error_re.match(line)
+      if mv:
+        sys.stderr.write(mv.group(2) + '\n')
+        sys.exit(1)
 
       line = prefix + line.format(**yaml_pp_vars)
 

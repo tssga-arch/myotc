@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+# Seed the users
+#
+( set -o pipefail 2>/dev/null ) && set -o pipefail
+set -euf
+R=""
+
+create_user() {
+  local user="$1" passwd= shadow=; shift
+  if [ $# -gt 0 ] ; then
+    shadow="$1" ; shift
+  else
+    passwd=$(pwgen 16)
+    shadow=$(mkpasswd "$passwd")
+  fi
+
+  useradd -U -G users -m -p "$shadow" -s /bin/bash "$user"
+  cat >$R/etc/sudoers.d/$user <<-_EOF_
+	$user ALL=(ALL) NOPASSWD: ALL
+	_EOF_
+  chmod 440 $R/etc/sudoers.d/$user
+
+  user_home=$(getent passwd $user | cut -d: -f6)
+  if [ -z "$user_home" ] ; then
+    echo "$user: was not created" 1>&2
+  else
+    mkdir -p "$user_home/.ssh"
+    if [ $# -gt 0 ] ; then
+      echo "$1" > "$user_home/.ssh/authorized_keys"
+      chmod 600 "$user_home/.ssh/authorized_keys"
+      shift
+    else
+      ssh-keygen -b 4096 -t rsa -N '' -C "$user@$(uname -n)"  -f "$user_home/.ssh/id_rsa"
+      chmod 600 "$user_home/.ssh/id_rsa"
+      chmod 600 "$user_home/.ssh/id_rsa.pub"
+      cp -av  "$user_home/.ssh/id_rsa.pub" "$user_home/.ssh/authorized_keys"
+    fi
+    chown -R "$user:$user" "$user_home/.ssh"
+  fi
+
+  if [ -n "$passwd" ] && [ -f "$user_home/.ssh/id_rsa" ] ; then
+    local dir=$(mktemp -d) rc=0
+    (
+      echo "$passwd" > $dir/passwd.txt
+      cat "$user_home/.ssh/id_rsa" > $dir/id_rsa
+      cat "$user_home/.ssh/id_rsa.pub" > $dir/id_rsa.pub
+      chmod 600 $dir/passwd.txt $dir/id_rsa $dir/id_rsa.pub
+      zip=$(readlink -f "$user.zip")
+      ( cd $dir ; zip $zip passwd.txt id_rsa id_rsa.pub )
+    ) || rc=$?
+    rm -rf "$dir"
+  fi
+}
+
+dump_user() {
+  local u u_home u_shadow u_pubkey
+  for u in "$@"
+  do
+    u_home=$(getent passwd $u | cut -d: -f6)
+    [ -z "$u_home" ] && continue
+    u_shadow=$(getent shadow $u | cut -d: -f2)
+    [ -z "$u_shadow" ] && continue
+    [ -f "$u_home/.ssh/authorized_keys" ] || continue
+    u_pubkey=$(head -1 "$u_home/.ssh/authorized_keys")
+    echo "$0 create_user $u '$u_shadow' '$u_pubkey'"
+  done
+}
+
+if [ $# -eq 0 ] ; then
+  cat 1>&2 <<-_EOF_
+	Usage;
+	  $0 create_user user [hashed-passwd [ssh-pub-key]]
+	  $0 dump_user user [more users]
+	_EOF_
+  exit 1
+fi
+
+op="$1" ; shift
+case "$op" in
+  create_user) create_user "$@" ;;
+  dump_user) dump_user "$@" ;;
+  *)
+    echo "$op: unknown function" 1>&2
+    exit 8
+    ;;
+esac
+
+
