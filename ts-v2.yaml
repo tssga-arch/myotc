@@ -1,0 +1,145 @@
+#ifndef SID
+#error Must define SID with -DSID=xyz
+#endif
+#define DEFPWLEN 16
+#define ext_domain otc1.cloudkit7.xyz
+#define vhost_fqdn {SID}.{ext_domain}
+#define acme_email alejandrol@t-systems.com
+#define acme_domains -d {vhost_fqdn}
+#include sslh-config.yaml
+
+#define DONT_USE_ACME
+#ifdef USE_ACME
+ #include acme-config.yaml
+#else
+ #include selfsigned-config.yaml
+#endif
+
+sid: {SID}
+tags: project=kermit
+snat: True
+sgs:
+  basic:
+   - 22/tcp
+   - 443/tcp
+nets:
+  1:
+    vms:
+      1:
+        # Jump Server
+        image: Standard_Ubuntu_22.04_latest
+        image_size: 16
+        flavor: s3.medium.4
+        eip: True
+        sg:
+         - 22/tcp
+         - 80/tcp
+         - 443/tcp
+        user_data:
+          #cloud-config
+          debug: true
+          disable_root: false
+          # Do apt-get update
+          package_update: True
+          package_reboot_if_required: true
+          packages:
+           - pwgen
+           - micro
+           - python3-venv
+           - zip
+           - sslh
+
+           - xfce4
+           - xfce4-goodies
+           - xubuntu-icon-theme
+           - gnome-icon-theme
+           - tango-icon-theme
+
+           - firefox
+           - geany
+           - tigervnc-viewer
+
+           - libvte9
+           - doc-base
+           - devhelp
+           - libnotify-bin
+           - yelp
+
+           - xorg
+           - xserver-xorg-legacy
+           - xserver-xorg-video-all
+           - mesa-utils
+           - xfonts-base
+           - xfonts-100dpi
+           - xfonts-75dpi
+           - xfonts-scalable
+           - x11-xserver-utils
+           - xbitmaps
+           - xclip
+
+           - xrdp
+           - xorgxrdp
+
+           - dos2unix
+           - docker.io
+
+           - apache2
+           - mariadb-server
+           - graphviz
+           - php
+           - php-mysql
+           - php-ldap
+           - php-cli
+           - php-soap
+           - php-json
+           - php-xml
+           - php-gd
+           - php-zip
+           - php-curl
+           - php-yaml
+           - libapache2-mod-php
+           - php-mbstring
+
+          write_files:
+           #include apache2/vhost-ssl.yaml
+           - owner: root:root
+             path: /usr/local/bin/seed-users
+             permissions: '0755'
+             content: |
+               #include --raw utils/seed-users
+
+          users:
+          - name: linux
+            sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+            groups: users
+            lock_passwd: false
+            shell: /bin/bash
+            passwd: $PWGEN:linux:SHA256:{DEFPWLEN}$
+            ssh_authorized_keys:
+            - $KEYGEN:linux:pub$
+
+          runcmd:
+            # Resize system image...
+            - growpart /dev/vda 1
+            - resize2fs /dev/vda1
+
+            #include resolvectl.yaml
+            #include tweak-etchosts.yaml
+            #include ssh/tcpfwd.yaml
+            #include sslh.yaml
+            #ifdef USE_ACME
+            #include acme.yaml
+            #else
+            #include selfsigned.yaml
+            - {selfsigned_cmd} {vhost_fqdn}
+            #endif
+
+            # Enable vhost
+            - a2ensite {vhost_fqdn}
+            - a2enmod ssl
+            - a2enmod proxy
+            - a2enmod proxy_http
+            - a2enmod proxy_wstunnel
+            - service apache2 restart
+
+        cname: {SID}

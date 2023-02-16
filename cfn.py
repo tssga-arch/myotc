@@ -15,12 +15,15 @@ DEFAULT_PUBLIC_DNS_ZONE = 7
 DEFAULT_PRIVATE_DNS_ZONE = 8
 DEFAULT_NET_FORMAT = 9
 
+DEFAULT_TAGS = 10
+
 cf = [
   None, None, None, None,
   'Standard_CentOS_8_latest', 's3.medium.2',
   [ '100.125.4.25', '100.125.129.199' ],
   os.getenv('DEFAULT_PUBLIC_DOMAIN','otc1.cloudkit7.xyz.'),
-  'nova.', '10.{id_hi}.{id_lo}.0/24'
+  'nova.', '10.{id_hi}.{id_lo}.0/24',
+  None,
 ]
 if not cf[DEFAULT_PUBLIC_DNS_ZONE].endswith('.'):
   cf[DEFAULT_PUBLIC_DNS_ZONE] += '.'

@@ -444,6 +444,12 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
     print('Created server {}'.format(args['name']))
     # Tag the server...
     server.add_tag(c.compute, 'SID={sid}'.format(sid= sid))
+    if cf[DEFAULT_TAGS]:
+      if isinstance(cf[DEFAULT_TAGS],str):
+        server.add_tag(c.compute, cf[DEFAULT_TAGS])
+      else:
+        for t in cf[DEFAULT_TAGS]:
+          server.add_tag(c.compute, t)
 
   else:
     server = c.compute.get_server(server)
