@@ -16,7 +16,6 @@
 #endif
 
 sid: {SID}
-tags: project=kermit
 snat: True
 sgs:
   basic:
