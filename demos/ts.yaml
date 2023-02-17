@@ -76,7 +76,7 @@ nets:
 
            - tigervnc-xorg-extension
            - slim
-           
+
            - xrdp
 
            - apache2
@@ -134,7 +134,7 @@ nets:
             - service apache2 restart
 
             - service slim start
-            
+
             # Install guacamole using https://github.com/MysticRyuujin/guac-install
             # git.io/fxZq5 -> https://raw.githubusercontent.com/MysticRyuujin/guac-install/master/guac-install.sh
             - wget https://git.io/fxZq5 -O /root/guac-install.sh
@@ -143,12 +143,12 @@ nets:
             - a2enmod proxy_http
             - a2enmod proxy_wstunnel
             - systemctl restart apache2
-            
+
             # See https://linuxize.com/post/how-to-install-xrdp-on-ubuntu-20-04/
             # These are not needed
             #  install ssl-cert
             #  adduser xrdp ssl-cert
             #  Edit /etc/xrdp.ini
-            
+
 
 
