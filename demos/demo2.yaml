@@ -2,18 +2,28 @@
 # Create a basic Linux server
 #
 #define PWDEFAULTS SHA256:12
-sid: demo2
+#define SID demo2
+#define PUBLIC_DNS_ZONE otc1.cloudkit7.xyz
+
 snat: True
+sgs:
+  standard:
+  - 22/tcp
+  - 443/tcp
+  - 8080/tcp
 nets:
   1:
     vms:
       1:
-        image: Standard_Ubuntu_20.04_latest
+        image: Standard_Ubuntu_22.04_latest
+        image_size: 16
         flavor: s3.medium.1
         eip: True
         sg:
          - 22/tcp
          - 443/tcp
+        vols:
+         1: {{ size: 20 }}
         user_data:
           # Do apt-get update
           package_update: True

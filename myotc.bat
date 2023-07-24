@@ -1,5 +1,5 @@
 @echo off
-set myotc=%~dp0%myotc.py
+set myotc=%~dp0%src\myotc.py
 call %~dp0%vars.bat
 python %myotc% -I %~dp0\snippets %*
 

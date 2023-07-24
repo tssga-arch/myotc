@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")"/../.venv/bin/activate
+export PYTHONPATH=$PYTHONPATH:$(dirname "$0")/..
+
+exec make "$@"

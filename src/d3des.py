@@ -1,39 +1,45 @@
 #!/usr/bin/env python
-#
-# Retreived 2021-12-15: https://github.com/matthayes/vnc2flv/blob/master/vnc2flv/d3des.py
-#
-##
-##  d3des.py - DES implementation
-##
-##  Copyright (c) 2009 by Yusuke Shinyama
-##
+'''
+VNC compatible DES implementation
 
-# This is a Python rewrite of d3des.c by Richard Outerbridge.
-#
-# I referred to the original VNC viewer code for the changes that
-# is necessary to maintain the exact behavior of the VNC protocol.
-# Two constants and two functions were added to the original d3des
-# code.  These added parts were written in Python and marked
-# below.  I believe that the added parts do not make this program
-# a "derivative work" of the VNC viewer (which is GPL'ed and
-# written in C), but if there's any problem, let me know.
-#
-# Yusuke Shinyama (yusuke at cs dot nyu dot edu)
+This module was retreived on 2021-12-15
+from `d3des.py <https://github.com/matthayes/vnc2flv/blob/master/vnc2flv/d3des.py>`_.
+
+d3des.py - DES implementation
+=============================
+
+Copyright (c) 2009 by Yusuke Shinyama
+
+This is a Python rewrite of d3des.c by Richard Outerbridge.
+
+I referred to the original VNC viewer code for the changes that
+is necessary to maintain the exact behavior of the VNC protocol.
+Two constants and two functions were added to the original d3des
+code.  These added parts were written in Python and marked
+below.  I believe that the added parts do not make this program
+a "derivative work" of the VNC viewer (which is GPL'ed and
+written in C), but if there's any problem, let me know.
+
+Yusuke Shinyama (yusuke at cs dot nyu dot edu)
+
+D3DES (V5.09)
+=============
+
+A portable, public domain, version of the Data Encryption Standard.
+
+Written with Symantec's THINK (Lightspeed) C by Richard Outerbridge.
+Thanks to: Dan Hoey for his excellent Initial and Inverse permutation
+code;  Jim Gillogly & Phil Karn for the DES key schedule code; Dennis
+Ferguson, Eric Young and Dana How for comparing notes; and Ray Lau,
+for humouring me on.
+
+Copyright (c) 1988,1989,1990,1991,1992 by Richard Outerbridge.
+(GEnie : OUTER; CIS : [71755,204]) Graven Imagery, 1992.
 
 
-#  D3DES (V5.09) -
-#
-#  A portable, public domain, version of the Data Encryption Standard.
-#
-#  Written with Symantec's THINK (Lightspeed) C by Richard Outerbridge.
-#  Thanks to: Dan Hoey for his excellent Initial and Inverse permutation
-#  code;  Jim Gillogly & Phil Karn for the DES key schedule code; Dennis
-#  Ferguson, Eric Young and Dana How for comparing notes; and Ray Lau,
-#  for humouring me on.
-#
-#  Copyright (c) 1988,1989,1990,1991,1992 by Richard Outerbridge.
-#  (GEnie : OUTER; CIS : [71755,204]) Graven Imagery, 1992.
-#
+
+'''
+
 
 from struct import pack, unpack
 
@@ -374,14 +380,20 @@ def desfunc(block, keys):
 import base64
 
 def encrypt(clear):
+  '''
+  VNC compatible encryption
+  
+  :params str clear: clear text password
+  :returns str: encrypted password
+  
+  Encrypts a password using a VNC compatible format.
+  '''
   clear = (bytes(clear,encoding='raw_unicode_escape') + b'\x00' * 8)[:8]
   strkey = b''.join([bytes(chr(x),encoding='raw_unicode_escape') for x in vnckey])
   key = deskey(strkey,False)
   crypted = desfunc(clear, key)
   b64 = base64.b64encode(crypted).decode('ascii')
   return b64
-  
-
 
 # test
 if __name__ == '__main__':

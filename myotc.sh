@@ -1,3 +1,4 @@
 #!/bin/sh
 . "$(dirname "$0")"/.venv/bin/activate
-exec python3 "$(dirname "$0")"/myotc.py -I "$(dirname "$0")/snippets" "$@"
+export PYTHONPATH=$PYTHONPATH:$(dirname "$0")
+exec python3 "$(dirname "$0")"/src/myotc.py -I "$(dirname "$0")/snippets" "$@"

@@ -1,28 +1,24 @@
 #!/usr/bin/env python3
+'''
+Create new resources
+
+'''
 import yaml
 import base64
+import consts as K
+import myotc
 
-# ~ import openstack
-# ~ import sys
-# ~ import os
-# ~ import fnmatch
-# ~ import time
-# ~ from datetime import datetime
-
-# ~ import ypp
-# ~ import nukes
-
-from cfn import *
-
-###################################################################
-#
-# Create new resources
-#
-###################################################################
 SG_KEYS = ('remote_ip_prefix', 'protocol', 'port_range_min', 'port_range_max' )
 SG_COPYKEYS = ('remote_ip_prefix', 'protocol', 'port_range_min', 'port_range_max', 'ethertype', 'remote_ip_prefix' )
 
 def find_volume(c, vname):
+  ''' Find volume
+
+  :param openstack.connection c: OpenStack connection
+  :param str vname: Resource name
+  :returns None|openstack.volume: None if error else volume instance
+  '''
+
   for v in c.block_store.volumes():
     if 'name' in v:
       if v['name'] == vname: return v
@@ -30,9 +26,19 @@ def find_volume(c, vname):
       if v['id'] == vname: return v
   return None
 
-def new_vol(vol_name, dryrun=True, **kw):
-  c = cf[CLOUD]
-  sid = cf[SID]
+def new_vol(vol_name, opts, **kw):
+  ''' Deploy new volume
+
+  :param str vol_name: name of volume
+  :param dict opts: session options
+  :param kwargs kw: dict for incoming keywoard arguments, containing VM attributes
+  :returns None|instance: Returns None on error, volume instance on success
+
+  '''
+
+  c = opts[K.CONN]
+  sid = opts[K.SID]
+  dryrun = opts[K.DRYRUN]
 
   cvol = find_volume(c, vol_name)
   if cvol is None:
@@ -40,6 +46,8 @@ def new_vol(vol_name, dryrun=True, **kw):
     if not 'size' in kw:
       print('Unable to create volume {}. "size" not specified'.format(vol_name))
       return None
+
+    myotc.msg('Creating volume {}...'.format(vol_name))
     cvol = c.block_store.create_volume(name=vol_name, **kw)
     c.block_store.wait_for_status(cvol,
                                   status='available',
@@ -47,27 +55,43 @@ def new_vol(vol_name, dryrun=True, **kw):
                                   interval=5,
 
                                   wait=120)
-    print('Created volume {}'.format(cvol['name']))
+    myotc.msg('DONE\n')
   else:
     if cvol['size'] != kw['size']:
       # Volume has been resized...
       if int(kw['size']) < int(cvol['size']):
         print('Not possible to reduce size of volume {}'.format(vol_name))
         return cvol
-      print('Resizing volume {}'.format(vol_name))
+      myotc.msg('Resizing volume {}...'.format(vol_name))
       cvol.extend(c.block_store, int(kw['size']))
+      myotc.msg('DONE\n')
   return cvol
 
 def flatten_rules(rule_lst):
+  ''' Convert list of Security Group rules to a string
+
+  :param list rule_list: list of rules to be flatten
+  :returns str: string represetnation of ``rule_list``.
+
+  Convert ``rule_list`` to a ``str`` so we can easily compare it.
+  '''
   ol = []
   for i in rule_lst:
     ol.append(yaml.dump(i))
   ol.sort()
   return yaml.dump(ol)
 
-def new_sg(sg_name, rule_list, dryrun=True):
-  c = cf[CLOUD]
-  sid = cf[SID]
+def new_sg(sg_name, rule_list, opts):
+  ''' Create Security Group
+
+  :param str sg_name: Security group name
+  :param list rule_list: List containing security rules
+  :param dict opts: Current session options
+  :returns security-group-instance: Returns instance to opentstack Security Group
+  '''
+  c = opts[K.CONN]
+  sid = opts[K.SID]
+  dryrun = opts[K.DRYRUN]
 
   # Convert rules
   # NOTE: We only support ingress rules!
@@ -134,41 +158,52 @@ def new_sg(sg_name, rule_list, dryrun=True):
         print('WONT update rules in security group {sg}'.format(sg=sg_name))
         return sg
 
-
       # Get rid of the old rule set
       cnt = 0
+      myotc.msg('Flusing SG {sgname}...'.format(sgname=sg_name))
       for osr in sg['security_group_rules']:
         if osr['direction'] != 'ingress': continue # we only know how to deal with ingress rules
         c.network.delete_security_group_rule(osr)
         cnt += 1
-      if cnt:
-        print('SG {sgname} flushed old rules: {count}'.format(sgname=sg_name,count=cnt))
+      myotc.msg('Rules flushed: {count}'.format(count=cnt))
   else:
+    myotc.msg('Creating SG {}...'.format(sg_name))
     sg = c.network.create_security_group(name = sg_name)
-    print('Created SG {}'.format(sg_name))
+    myotc.msg('DONE\n')
 
+  myotc.msg('SG {sgname} adding rules...'.format(sgname=sg_name))
   cnt = 0
   for rule in rules:
     rule['security_group_id'] = sg.id
     # ~ print(rule)
     c.network.create_security_group_rule(**rule)
     cnt += 1
-  print('SG {sgname} rules added: {count}'.format(sgname=sg_name, count=cnt))
+  myotc.msg('Rules added: {count}\n'.format(sgname=sg_name, count=cnt))
 
   return sg
 
-def new_vpc(dryrun=True,**attrs):
-  c = cf[CLOUD]
-  sid = cf[SID]
+def new_vpc(opts, **attrs):
+  ''' Create a new VPC
+
+  :param dict opts: dict containing current deployment settings
+  :param kwargs attrs: dict for incoming keywoard arguments, containing VPC attributes
+
+  The following attributes are recongized:
+
+  - ``bool snat``: Enable Source NAT
+  '''
+  c = opts[K.CONN]
+  sid = opts[K.SID]
+  dryrun = opts[K.DRYRUN]
 
   vpcname = '{}-vpc1'.format(sid)
   vpc = c.network.find_router(vpcname)
   if not vpc:
+    myotc.msg('Creating vpc {}...'.format(vpcname))
     vpc = c.network.create_router(name=vpcname)
-    print('Created vpc {}'.format(vpcname))
 
-    if 'snat' in attrs:
-      snat = attrs['snat']
+    if K.snat in attrs:
+      snat = attrs[K.snat]
     else:
       snat = True
 
@@ -178,41 +213,60 @@ def new_vpc(dryrun=True,**attrs):
           'network_id': vpc['external_gateway_info']['network_id']
         }
     )
+    myotc.msg('DONE\n')
   else:
-    if 'snat' in attrs:
-      snat = bool(attrs['snat'])
+    if K.snat in attrs:
+      snat = bool(attrs[K.snat])
       if bool(vpc['external_gateway_info']['enable_snat']) != snat:
         if dryrun:
           print('vpc {} needs to change snat setting to {}'.format(vpcname,snat))
         else:
+          myotc.msg('vpc {} changing snat setting to {}...'.format(vpcname,snat))
+
           vpc = c.network.update_router(vpc.id,
               external_gateway_info = {
                 'enable_snat': snat,
                 'network_id': vpc['external_gateway_info']['network_id']
               }
           )
-          print('vpc {} changed snat setting to {}'.format(vpcname,snat))
+          myotc.msg('DONE\n')
 
   # Always create an internal dnz zone
-  zname = '{}.{}'.format(sid,cf[DEFAULT_PRIVATE_DNS_ZONE])
-  idnsz = c.dns.find_zone(zname,zone_type='private')
-  if not idnsz:
-    idnsz = c.dns.create_zone(
+  if K.PRIVATE_DNS_ZONE in opts and not opts[K.PRIVATE_DNS_ZONE] is None:
+    zname = '{}.{}'.format(sid,opts[K.PRIVATE_DNS_ZONE])
+    idnsz = c.dns.find_zone(zname,zone_type=K.private)
+    if not idnsz:
+      myotc.msg('Creating internal DNS zone {}...'.format(zname))
+      idnsz = c.dns.create_zone(
         name=zname,
-        router = { 'router_id': vpc.id },
-        zone_type='private'
-    )
-    print('Created internal DNS zone {}'.format(zname))
-
+        router = { K.router_id: vpc.id },
+        zone_type=K.private
+      )
+      myotc.msg('DONE\n')
+  else:
+    print('No PRIVATE_DNS_ZONE defined')
   return vpc
 
 def flatten_rs(lst):
+  ''' Flatten DNS resource records
+
+  :param list lst: Resource record list
+
+  Flatten DNS record sets so that it can be compared
+  '''
   r = list(lst)
   r.sort()
   return yaml.dump(r)
 
-def find_rrs(zn,rtype,name):
-  c = cf[CLOUD]
+def find_rrs(zn,rtype,name, c):
+  ''' Find DNS Resource Records
+
+  :param openstack.dnszone zn: OpenStack DNS Zone to query
+  :param str rtype: Resource type being queried
+  :param str name: Resource name
+  :param openstack.connection c: OpenStack connection
+  :returns None|RecordSet: None if error, list of resource record sets
+  '''
 
   for rs in c.dns.recordsets(zn):
     if ('name' in rs) and ('type' in rs):
@@ -220,11 +274,21 @@ def find_rrs(zn,rtype,name):
         return rs
   return None
 
-def del_dns(zname, zone_type, bsname, rtype, dryrun=True):
-  c = cf[CLOUD]
+def del_dns(zname, zone_type, bsname, rtype, opts):
+  ''' Delete DNS records
+
+  :param str zname: zone name to use
+  :param str zone_type: Set to 'private' or 'public'
+  :param bsname: DNS record name
+  :param str rtype: DNS record type, e.g. ``A`` or ``CNAME`` or ``AAAA``, etc.
+  :param dict opts: session options
+
+  '''
+  c = opts[K.CONN]
+  dryrun = opts[K.DRYRUN]
 
   dnszn = c.dns.find_zone(zname,zone_type=zone_type)
-  if not dnszn: return None
+  if not dnszn: return
   name = '{}.{}'.format(bsname,zname)
 
   cset = find_rrs(dnszn, rtype, name)
@@ -232,18 +296,29 @@ def del_dns(zname, zone_type, bsname, rtype, dryrun=True):
     if dryrun:
       print('WONT update DNS {type} record for {name}'.format(type=rtype,name=name))
     else:
+      myotc.msg('Deleting DNS {type} record for {name}...'.format(type=rtype,name=name))
       c.dns.delete_recordset(cset,dnszn)
-      print('Deleted DNS {type} record for {name}'.format(type=rtype,name=name))
+      myotc.msg('DONE\n')
 
-def new_dns(zname, zone_type, bsname, rtype, rrs, dryrun=True):
-  # ~ print([zname,zone_type, bsname, rtype, rrs, dryrun])
-  c = cf[CLOUD]
+def new_dns(zname, zone_type, bsname, rtype, rrs, opts):
+  ''' Create DNS records
+
+  :param str zname: zone name to use
+  :param str zone_type: Set to 'private' or 'public'
+  :param bsname: DNS record name
+  :param str rtype: DNS record type, e.g. ``A`` or ``CNAME`` or ``AAAA``, etc.
+  :param list rrs: list of records
+  :param dict opts: session options
+
+  '''
+  c = opts[K.CONN]
+  dryrun = opts[K.DRYRUN]
 
   dnszn = c.dns.find_zone(zname,zone_type=zone_type)
-  if not dnszn: return None
+  if not dnszn: return
   name = '{}.{}'.format(bsname,zname)
 
-  cset = find_rrs(dnszn, rtype, name)
+  cset = find_rrs(dnszn, rtype, name, c)
   if cset:
     if len(rrs):
       if flatten_rs(cset['records']) != flatten_rs(rrs):
@@ -251,33 +326,47 @@ def new_dns(zname, zone_type, bsname, rtype, rrs, dryrun=True):
         if dryrun:
           print('WONT update DNS {type} record for {name}'.format(type=rtype,name=name))
         else:
+          myotc.msg('Updating DNS {type} record for {name}...'.format(type=rtype,name=name))
           c.dns.delete_recordset(cset,dnszn)
           c.dns.create_recordset(dnszn, name=name, type = rtype, records = rrs)
-          print('Updated DNS {type} record for {name}'.format(type=rtype,name=name))
+          myotc.msg('DONE\n')
     else:
       if dryrun:
         print('WONT delete DNS {type} record for {name}'.format(type=rtype,name=name))
       else:
+        myotc.msg('Deleting DNS {type} record for {name}...'.format(type=rtype,name=name))
         c.dns.delete_recordset(cset,dnszn)
-        print('Deleted DNS {type} record for {name}'.format(type=rtype,name=name))
+        myotc.msg('DONE\n')
   else:
     if len(rrs):
+      myotc.msg('Creating DNS {type} record for {name}...'.format(type=rtype,name=name))
       c.dns.create_recordset(dnszn, name=name, type = rtype, records = rrs)
-      print('Created DNS {type} record for {name}'.format(type=rtype,name=name))
+      myotc.msg('DONE\n')
 
-def new_net(id_or_name, dryrun=True, cidr_tmpl=None, **attrs):
-  c = cf[CLOUD]
-  sid = cf[SID]
+
+def new_net(id_or_name, opts, cidr_tmpl=None, **attrs):
+  ''' Deploy new subnet
+
+  :param int|str id_or_name: base id/name for this subnet
+  :param dict opts: session options
+  :param cidr_templ: template used to assign CIDR addresses
+  :param kwargs attrs: dict for incoming keywoard arguments, containing subnet attributes
+  :returns None|instance: Returns None on error, Net instance on success
+
+  '''
+  c = opts[K.CONN]
+  sid = opts[K.SID]
+  dryrun = opts[K.DRYRUN]
   prefix = sid + '-'
 
-  name = gen_name(id_or_name,'sn')
+  name = myotc.gen_name(id_or_name, 'sn', sid)
 
   netname = '{}net'.format(name)
   net = c.network.find_network(netname)
   if not net:
+    myotc.msg('Creating network {}...'.format(netname))
     net = c.network.create_network(name = netname)
-    print('Created network {}'.format(netname))
-
+    myotc.msg('DONE\n')
 
   if 'vpc' in attrs:
     vpcname = attrs['vpc']
@@ -293,7 +382,7 @@ def new_net(id_or_name, dryrun=True, cidr_tmpl=None, **attrs):
     if not 'cidr' in attrs:
       if isinstance(id_or_name,int):
         if cidr_tmpl is None:
-          cidr = cf[DEFAULT_NET_FORMAT].format(id=id_or_name, id_hi=int(id_or_name/256), id_lo=int(id_or_name % 256))
+          cidr = opts[K.NET_FORMAT].format(id=id_or_name, id_hi=int(id_or_name/256), id_lo=int(id_or_name % 256))
         else:
           cidr = cidr_tmpl.format(id=id_or_name, id_hi=int(id_or_name/256), id_lo=int(id_or_name % 256))
       else:
@@ -305,7 +394,7 @@ def new_net(id_or_name, dryrun=True, cidr_tmpl=None, **attrs):
     args = {
       'name': name,
       'is_dhcp_enabled': True,
-      'dns_nameservers': cf[DEFAULT_NAME_SERVERS],
+      'dns_nameservers': myotc.DEFAULT_NAME_SERVERS,
       'cidr': cidr,
       'network_id': net.id
     }
@@ -313,11 +402,11 @@ def new_net(id_or_name, dryrun=True, cidr_tmpl=None, **attrs):
     if 'dhcp' in attrs: args['is_dhcp_enabled'] = bool(attrs['dhcp'])
     if 'dns_servers' in attrs: args['dns_nameservers'] = attrs['dns_servers']
 
+    myotc.msg('Creating subnet {}...'.format(name))
     snx = c.network.create_subnet(**args)
-    print('Created subnet {}'.format(name))
+    myotc.msg('connecting to vpc {}...'.format(vpcname))
     c.network.add_interface_to_router(vpc, snx.id)
-    print('Connected subnet {} to vpc {}'.format(name,vpcname))
-
+    myotc.msg('DONE\n')
 
   else:
     args = {}
@@ -337,14 +426,20 @@ def new_net(id_or_name, dryrun=True, cidr_tmpl=None, **attrs):
           print('subnet {} needs to reconfiguration:'.format(name))
           print(args)
         else:
-          c.network.update_subnet(snx,**args)
-          print('Updated subnet {}:'.format(name))
+          myotc.msg('Updating subnet {}:\n'.format(name))
           print(args)
+          c.network.update_subnet(snx,**args)
+          myotc.msg('DONE\n')
 
   return net
 
 
 def has_eip(server):
+  ''' Check if server has an floating IP
+
+  :param openstack.server server: OpenStack server instance
+  :returns str|None: Returns Floating IP address of server, otherwise returns None
+  '''
   if 'addresses' in server:
     for sn in server['addresses']:
       for ip in server['addresses'][sn]:
@@ -353,17 +448,28 @@ def has_eip(server):
             return ip['addr']
   return None
 
-def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
-  c = cf[CLOUD]
-  sid = cf[SID]
+def new_srv(id_or_name, opts, **kw):
+  ''' Deploy new subnet
 
-  name = gen_name(id_or_name,'vm')
+  :param int|str id_or_name: base id/name for this subnet
+  :param dict opts: session options
+  :param kwargs kw: dict for incoming keywoard arguments, containing VM attributes
+  :returns None|instance: Returns None on error, VM instance on success
+  :todo: Tagging is incomplete
+
+  '''
+  c = opts[K.CONN]
+  sid = opts[K.SID]
+  dryrun = opts[K.DRYRUN]
+  prefix = sid + '-'
+
+  name = myotc.gen_name(id_or_name, 'vm', sid)
   args = { "name": name }
 
   if 'image' in kw:
     image_name = kw['image']
   else:
-    image_name = cf[DEFAULT_IMAGE]
+    image_name = opts[K.DEFAULT_IMAGE]
   image = c.compute.find_image(image_name)
   if not image:
     print('Image {image} not found for vm {name}'.format(name=name,image=image_name))
@@ -373,7 +479,7 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
   if 'flavor' in kw:
     flavor_name = kw['flavor']
   else:
-    favor_name = cf[DEFAULT_FLAVOR]
+    favor_name = cf[K.DEFAULT_FLAVOR]
   flavor = c.compute.find_flavor(flavor_name)
   if not flavor:
     print('Flavor {flavor} not found for vm {name}'.format(name=name,flavor=flavor_name))
@@ -392,8 +498,8 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
           return None
         sg_name = kw['sg']
     else: # Assume is a list of rules...
-      sg_name = gen_name(id_or_name, 'sgvm')
-      new_sg(sg_name,  kw['sg'], dryrun=dryrun)
+      sg_name = myotc.gen_name(id_or_name, 'sgvm', sid)
+      new_sg(sg_name,  kw['sg'], opts)
     args['security_groups'] = [{'name': sg_name }]
   else:
     args['security_groups'] = []  # Does this make sense?
@@ -402,7 +508,7 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
     args['key_name'] = kw['keypair']
 
   args['networks'] = []
-  if forced_net: args['networks'].append({'uuid': forced_net.id})
+  if 'forced_net' in kw and not kw['forced_net'] is None: args['networks'].append({'uuid': kw['forced_net'].id})
 
   if 'nets' in kw:
     if isinstance(kw['nets'],str):
@@ -439,18 +545,13 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
 
   server = c.compute.find_server(name)
   if not server:
+    myotc.msg('Creating server {}...'.format(args['name']))
     server = c.compute.create_server(**args)
     server = c.compute.wait_for_server(server)
-    print('Created server {}'.format(args['name']))
     # Tag the server...
+    myotc.msg('tagging...')
     server.add_tag(c.compute, 'SID={sid}'.format(sid= sid))
-    if cf[DEFAULT_TAGS]:
-      if isinstance(cf[DEFAULT_TAGS],str):
-        server.add_tag(c.compute, cf[DEFAULT_TAGS])
-      else:
-        for t in cf[DEFAULT_TAGS]:
-          server.add_tag(c.compute, t)
-
+    myotc.msg('DONE\n')
   else:
     server = c.compute.get_server(server)
 
@@ -472,12 +573,13 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
         # ~ print(args)
       else:
         # We destroy the server and re-create it...
+        myotc.msg('Deleting vm {}...'.format(name))
         c.compute.delete_server(server['id'])
         c.compute.wait_for_delete(server)
-        print('Deleted vm {}'.format(name))
+        myotc.msg('Re-creating...');
         server = c.compute.create_server(**args)
         server = c.compute.wait_for_server(server)
-        print('Created server {}'.format(args['name']))
+        myotc.msg('DONE\n')
 
   if 'image_size' in kw:
     # We may need to resize image volume
@@ -507,13 +609,14 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
                     tsize = int(kw['image_size']),
                   ))
             break
-        print('Resizing image volume for {name} from {csize} to {tsize}'.format(
+        myotc.msg('Resizing image volume for {name} from {csize} to {tsize}...'.format(
                   name  = name,
                   csize = int(vdat['size']),
                   tsize = int(kw['image_size']),
                 ))
         # must resize image volume
         vdat.extend(c.block_store,int(kw['image_size']))
+        myotc.msg('DONE\n')
 
   # update internal DNS zone...
   rrs = { 'A': [], 'AAAA': [] }
@@ -526,8 +629,7 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
           rrs['A'].append(ip['addr'])
 
   for rtype in rrs:
-    new_dns('{}.{}'.format(sid,cf[DEFAULT_PRIVATE_DNS_ZONE]), 'private', name, rtype, rrs[rtype], dryrun=dryrun)
-
+    new_dns('{}.{}'.format(sid,opts[K.PRIVATE_DNS_ZONE]), K.private, name, rtype, rrs[rtype], opts)
 
   if 'eip' in kw:
     if 'update_dns' in kw:
@@ -535,19 +637,20 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
     else:
       upd_dns = True
 
-    dns_name = '{}.{}'.format(name,cf[DEFAULT_PUBLIC_DNS_ZONE])
+    dns_name = '{}.{}'.format(name,opts[K.PUBLIC_DNS_ZONE])
 
     if kw['eip']:
       # TODO: add support for IPv6
       ip_addr = has_eip(server)
       if not ip_addr:
+        myotc.msg('Creating floating IP for server {}...'.format(name))
         eip = c.create_floating_ip(server = server)
-        print('Created floating IP for server {}'.format(name))
+        myotc.msg('DONE\n')
         ip_addr = eip.floating_ip_address
       if upd_dns:
-        new_dns(cf[DEFAULT_PUBLIC_DNS_ZONE], 'public', name, 'A', [ ip_addr ], dryrun=dryrun)
+        new_dns(opts[K.PUBLIC_DNS_ZONE], K.public, name, 'A', [ ip_addr ], opts)
       else:
-        del_dns(cf[DEFAULT_PUBLIC_DNS_ZONE], 'public', name, 'A', dryrun=dryrun)
+        del_dns(opts[K.PUBLIC_DNS_ZONE], K.public, name, 'A', opts)
     else:
       if has_eip(server):
         port_ids = {}
@@ -561,9 +664,11 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
             if dryrun:
               print('WONT release IP {ip} from server port {port}'.format(ip=ip.floating_ip_address, port = port_ids[ip.port_id]))
             else:
+              myotc.msg('Releasing IP {ip} from server port {port}...'.format(ip=ip.floating_ip_address, port = port_ids[ip.port_id]))
               c.network.delete_ip(ip)
-              print('Released IP {ip} from server port {port}'.format(ip=ip.floating_ip_address, port = port_ids[ip.port_id]))
-              del_dns(cf[DEFAULT_PUBLIC_DNS_ZONE], 'public', name, 'A', dryrun=dryrun)
+              myotc.msg('DONE\n')
+              del_dns(opts[K.PUBLIC_DNS_ZONE], K.public, name, 'A', opts)
+
 
     if upd_dns and ('cname' in kw):
       if isinstance(kw['cname'],str):
@@ -572,7 +677,7 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
         cnames = kw['cname']
 
       for cn in cnames:
-        new_dns(cf[DEFAULT_PUBLIC_DNS_ZONE], 'public', cn, 'CNAME', [ dns_name ], dryrun=dryrun)
+        new_dns(opts[K.PUBLIC_DNS_ZONE], K.public, cn, 'CNAME', [ dns_name ], opts)
 
   # create and attach volumes
   if 'vols' in kw:
@@ -583,8 +688,8 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
         if not v is None:
           v_x[v['id']] = v
           continue
-      vol_name = gen_name(v_id_or_name, name[len(sid)+1:]+'-v')
-      v = new_vol(vol_name, dryrun=dryrun, **kw['vols'][v_id_or_name])
+      vol_name = myotc.gen_name(v_id_or_name, name[len(sid)+1:]+'-v',sid)
+      v = new_vol(vol_name, opts, **kw['vols'][v_id_or_name])
       if not v is None:
         v_x[v['id']] = v
 
@@ -605,23 +710,25 @@ def new_srv(id_or_name,forced_net=None,dryrun=True,**kw):
         if dryrun:
           print('WONT detach volume {} from vm {}'.format(xvol['name'], name))
         else:
+          myotc.msg('Detaching volume {} from vm {}...'.format(xvol['name'], name))
           c.compute.delete_volume_attachment(av['id'],server)
           c.block_store.wait_for_status(xvol,
                                     status='in-use',
                                     failures=['error'],
                                     interval=5,
                                     wait=120)
-          print('Detached volume {} from vm {}'.format(xvol['name'], name))
+          myotc.msg('DONE\n')
 
     # Attaching any remaining volumes...
     for v in v_x:
+      myotc.msg('Attaching volume {} to vm {}...'.format(v_x[v]['name'],name))
       c.compute.create_volume_attachment(server, volume_id=v_x[v]['id'])
       c.block_store.wait_for_status(v_x[v],
                                     status='in-use',
                                     failures=['error'],
                                     interval=5,
                                     wait=120)
-      print('Attached volume {} to vm {}'.format(v_x[v]['name'],name))
+      myotc.msg('DONE\n')
   return server
 
 
