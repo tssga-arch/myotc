@@ -43,10 +43,11 @@ if NOT "%PKGVER%" == "" goto :DONE
 
   call %WPYDIR%\%ENVBAT%
 
-  set proxy=10.41.5.36:8080
-  set http_proxy=http://%proxy%/
-  set https_proxy=http://%proxy%/
-
 :DONE
+
+set proxy=10.41.5.36:8080
+set http_proxy=http://%proxy%/
+set https_proxy=http://%proxy%/
+
 set ENVBAT=
 set SDIR=

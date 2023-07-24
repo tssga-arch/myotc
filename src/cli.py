@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+''' Command Line Interface definition '''
 import ypp
 import shows
 import cmds
-from cfn import *
+import proxycfg
 from argparse import ArgumentParser, Action
+import consts as K
 
 ###################################################################
 #
@@ -11,14 +13,21 @@ from argparse import ArgumentParser, Action
 #
 ###################################################################
 
-def parser():  
+def parser():
+  ''' Command line argument parser '''
   cli = ArgumentParser(prog='MyOTC',
                         description='My OTC operational calls',
                         add_help = False)
   cli.add_argument('-d','--debug', help='Enable debugging',action='store_true')
   cli.add_argument('-I','--include', help='Add Include path', action='append')
   cli.add_argument('-D','--define', help='Add constant', action='append')
+  if proxycfg.has_winreg:
+    cli.add_argument('-A','--autocfg',help='Use WinReg to configure proxy', action='store_true')
   subs = cli.add_subparsers()
+
+  if proxycfg.has_winreg:
+    showcfg_cli = subs.add_parser('show-proxy-autocfg',help='Show proxy autocfg data')
+    showcfg_cli.set_defaults(func = proxycfg.show_autocfg)
 
   deploy_cli = subs.add_parser('deploy', help='Deploy a cloud environment')
   deploy_cli.add_argument('-x','--execute', help='Execute (defaults to dry-run).  Only applies when modifying existing resources',action='store_true')
@@ -33,22 +42,23 @@ def parser():
   start_cli = subs.add_parser('start', help='Start VM')
   start_cli.add_argument('-c','--file', help='Read VMs from YAML file')
   start_cli.add_argument('name', help='VM name to start',nargs='*')
-  start_cli.set_defaults(func = cmds.state_cmd, forced = False, mode = 'start')
+  start_cli.set_defaults(func = cmds.state_cmd, forced = False, mode = K.start)
 
   stop_cli = subs.add_parser('stop', help='Stop VM')
   stop_cli.add_argument('-c','--file', help='Read VMs from YAML file')
   stop_cli.add_argument('name', help='VM name to stop',nargs='*')
-  stop_cli.set_defaults(func = cmds.state_cmd, forced = False, mode = 'stop')
+  stop_cli.set_defaults(func = cmds.state_cmd, forced = False, mode = K.stop)
 
   reboot_cli = subs.add_parser('reboot', help='Re-boot VM')
   reboot_cli.add_argument('-f','--forced', help='Hard Reboot', action='store_true')
   reboot_cli.add_argument('name', help='VM name to reboot',nargs='+')
-  reboot_cli.set_defaults(func = cmds.state_cmd, forced = False, mode = 'reboot', file = None)
+  reboot_cli.set_defaults(func = cmds.state_cmd, forced = False, mode = K.reboot, file = None)
 
   vmlist_cli = subs.add_parser('vms', help='List VMs')
   vmlist_cli.add_argument('-s','--sid', help='Specify the SID to list')
   vmlist_cli.add_argument('-F','--format', help='Format to print')
   vmlist_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
+  vmlist_cli.add_argument('-c','--file', help='Read VMs from YAML file')
   vmlist_cli.add_argument('spec', help='VM name or wildcard', nargs='*')
   vmlist_cli.set_defaults(func = shows.vmlist_cmd)
 
@@ -74,49 +84,37 @@ def parser():
   vpcs_cli.add_argument('-F','--format', help='Format to print')
   vpcs_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
   vpcs_cli.add_argument('spec', help='name or wildcard', nargs='*')
-  vpcs_cli.set_defaults(func = shows.lists_cmd, mode='vpc',
-                        format='{name:16}',
-                        header='{:16}'.format('name'))
+  vpcs_cli.set_defaults(func = shows.lists_cmd, mode=K.vpc)
 
   keys_cli = subs.add_parser('keys', help='List Keys')
   keys_cli.add_argument('-F','--format', help='Format to print')
   keys_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
   keys_cli.add_argument('spec', help='name or wildcard', nargs='*')
-  keys_cli.set_defaults(func = shows.lists_cmd, mode='key',
-                        format='{name:16} {type:8} {short_public_key}',
-                        header='{:16} {:8} {}'.format('name','type','public key'))
+  keys_cli.set_defaults(func = shows.lists_cmd, mode=K.key)
 
   nets_cli = subs.add_parser('nets', help='List nets/subnets')
   nets_cli.add_argument('-F','--format', help='Format to print')
   nets_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
   nets_cli.add_argument('spec', help='name or wildcard', nargs='*')
-  nets_cli.set_defaults(func = shows.lists_cmd, mode='net',
-                        format='{name:16} {cidr:16}',
-                        header='{:16} {:16}'.format('name','CIDR'))
+  nets_cli.set_defaults(func = shows.lists_cmd, mode=K.net)
 
   zones_cli = subs.add_parser('dns-zones', help='List DNS zones')
   zones_cli.add_argument('-F','--format', help='Format to print')
   zones_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
   zones_cli.add_argument('spec', help='name or wildcard', nargs='*')
-  zones_cli.set_defaults(func = shows.lists_cmd, mode='zone',
-                        format='{name:24} {zone_type:8} {record_num:3}',
-                        header='{:24} {:8} {:3}'.format('name','type','rrs'))
+  zones_cli.set_defaults(func = shows.lists_cmd, mode=K.zone)
 
   sgs_cli = subs.add_parser('sgs', help='List Security Groups')
   sgs_cli.add_argument('-F','--format', help='Format to print')
   sgs_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
   sgs_cli.add_argument('spec', help='name or wildcard', nargs='*')
-  sgs_cli.set_defaults(func = shows.lists_cmd, mode='sgs',
-                        format='{name}',
-                        header='{}'.format('name'))
+  sgs_cli.set_defaults(func = shows.lists_cmd, mode=K.sgs)
 
   vols_cli = subs.add_parser('vols', help='List Volumes')
   vols_cli.add_argument('-F','--format', help='Format to print')
   vols_cli.add_argument('-l','--details', help='Show detailed list',action='store_true')
   vols_cli.add_argument('spec', help='name or wildcard', nargs='*')
-  vols_cli.set_defaults(func = shows.lists_cmd, mode='vols',
-                        format='{name:16} {size:8,} {status:12} {vm}:{vm_device}',
-                        header='{:16} {:>8} {:12} {}'.format('name','size','status','vm'))
+  vols_cli.set_defaults(func = shows.lists_cmd, mode=K.vols)
 
   ping_cli = subs.add_parser('ping', help='Check connectivity')
   ping_cli.add_argument('-p','--output', help='Print output',action='store_true')
@@ -142,4 +140,4 @@ def parser():
 
   return cli
 
-  
+

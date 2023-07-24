@@ -9,6 +9,8 @@ import string
 import subprocess
 import json
 from d3des import encrypt as d3des
+from argparse import ArgumentParser, Action
+
 try:
   from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
   from cryptography.hazmat.primitives import serialization as crypto_serialization
@@ -23,13 +25,41 @@ except ImportError:
 #
 ###################################################################
 yaml_include_path = []
+''' List of folders where to find included files '''
 secrets_file = '_secrets_file_'
+''' variable name for secrets file in the yaml_pp_vars dictionary '''
 key_store = '_ssh_key_store_'
+''' variable name for the keystore folder in the yaml_pp_vars dictionary '''
+
 yaml_pp_vars = dict(os.environ)
+''' dictonary containing pre-processor variable definitions '''
+if 'sphinx' in sys.modules:
+  yaml_pp_vars = { 'content_of': 'os environment' }
 
 valid_re = re.compile(r'^[_A-Za-z][_A-Za-z0-9]*$')
+''' Regular expressions to validate pre-processor variable names '''
+
+def vars(value, default = None):
+  ''' Look-up pre-processor values
+
+  :param str value: variable to look-up
+  :param str default: (optional) value to return if variable does not exist
+  :returns None|str: defined variable
+  '''
+  if value in yaml_pp_vars:
+    return yaml_pp_vars[value]
+  return default
 
 def yaml_init(inc_path, predef):
+  ''' Initialize YAML pre-processor
+
+  :param list inc_path: list of folders to initialize include path
+  :param list predef: list of strings formatted as key=value pairs to initialize the YAML pre-processor variables
+
+  This function is intended to be used to initialie the pre-processor
+  internal variables from arguments entered in the command line.
+
+  '''
   if not secrets_file in yaml_pp_vars:
     if os.path.isfile('_secrets.yaml'):
       yaml_pp_vars[secrets_file] = '_secrets.yaml'
@@ -66,6 +96,15 @@ def yaml_init(inc_path, predef):
         print('{} is not a valid name'.format(key))
 
 def yaml_findfile(fname, prev):
+  ''' Find included file path
+
+  :param str fname: Filename to include
+  :param str prev: Current file name being processed
+  :returns str: Resolved included file
+
+  First it tries to file as a relative to the current (prev) file.
+  If not found, search for it in the Include path.
+  '''
   if fname[0] == '/':
     # This is an absolute path!
     return fname
@@ -86,9 +125,25 @@ def yaml_findfile(fname, prev):
   return fname
 
 include_res = [ re.compile(r'^(\s*)#\s*include\s+') , re.compile(r'^(\s*-\s*)#\s*include\s+')]
+''' Regular expressions to search for include files '''
 include_type = re.compile(r'\s*--(raw|bin)\s+')
+''' Regular expression to determine the include type '''
 
 def yaml_inc(line):
+  ''' Process include statement
+
+  :param str line: Line that potentially contains the include statement
+  :returns None|dict: Returns None if not a include statement, if include statement, a dict.
+
+  Look into the read line and check if it is an "include" statement.
+  When found, it returns a dictionary containing:
+
+  * file : Included file
+  * prefix : Whitespace in front of the include statement.  Used to nest YAML structures.
+  * type : type of include, "raw", "bin" or None.
+
+  If the line did not contain an include statement, returns None.
+  '''
   for inc_re in include_res:
     mv = inc_re.match(line)
     if mv is None: continue
@@ -106,6 +161,17 @@ def yaml_inc(line):
   return None
 
 def yaml_raw(fname, prefix = '', prev = None):
+  ''' Include file verbatim
+
+  :param str fname: File to include
+  :param str prefix: (optional) lines are prepended with ``prefix``
+  :param str prev: (optional) Not used, but kept to maintain interface
+
+  Includes a file without doing any pre-processing.  No variable
+  expansion nor include statements.
+
+  Prefix is still used.  This is to maintiain the YAML file structure.
+  '''
   txt = ''
   prefix2 = prefix.replace('-',' ')
   fname = yaml_findfile(fname, prev)
@@ -120,6 +186,17 @@ def yaml_raw(fname, prefix = '', prev = None):
   return txt
 
 def yaml_bin(fname, prefix = '', prev = None):
+  ''' Include binary file
+
+  :param str fname: File to include
+  :param str prefix: (optional) lines are prepended with ``prefix``
+  :param str prev: (optional) Not used, but kept to maintain interface
+
+  Include binary file as MIME/Base64 encoded text.
+
+  Prefix is used to maintain YAML file structure.
+  '''
+
   txt = ''
   prefix2 = prefix.replace('-',' ')
   fname = yaml_findfile(fname, prev)
@@ -135,7 +212,18 @@ def yaml_bin(fname, prefix = '', prev = None):
   return txt
 
 keygen_re = re.compile(r'(.*)\$KEYGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+''' Regular expression to detect sshkey macros '''
+
 def sshkeygen(line):
+  ''' Process SSH Keygen lines
+
+  :param str line: line being processed
+  :returns str: Post-processed line
+
+  Looks for KEYGEN macros and replaces them with SSH Private or Public
+  keys.  It will either read them from the ``key_store`` or will
+  create a new key as needed.
+  '''
   mv = keygen_re.match(line)
   if not mv: return line
 
@@ -194,8 +282,22 @@ def sshkeygen(line):
   return "\n".join(lines)
 
 pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+''' regular expression to parse PWGEN macros '''
 
 def pwgen(line):
+  ''' Handle PWGEN macros
+
+  :param str line: line being processed
+  :returns str: Post-processed line
+
+  Looks for PWGEN macros and replaces them with the specified password.
+  It will either read them from the ``secrets_file`` or will
+  create a new password as needed.
+
+  Post-processed line will contain the specified password and this can
+  be formatted according to the macro's arguments.
+  '''
+
   secrets = None
   mv = pwgen_re.match(line)
   while mv:
@@ -246,14 +348,37 @@ def pwgen(line):
   return line
 
 define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+''' Regular expression to parse define statements '''
 ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+''' Regular expression to parse ifdef statements '''
 ifndef_re = re.compile(r'^\s*#\s*ifndef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+''' Regular expression to parse ifndef statements '''
 else_re = re.compile(r'^\s*#\s*else\s*')
+''' Regular expression to parse else statements '''
 endif_re = re.compile(r'^\s*#\s*endif\s*')
+''' Regular expression to parse endif statements '''
 exec_re = re.compile(r'^(\s*)#\s*exec\s+(.*)$')
+''' Regular expression to parse exec statements '''
 error_re = re.compile(r'^(\s*)#\s*error\s+(.*)$')
+''' Regular expression to parse error statements '''
+warn_re = re.compile(r'^(\s*)#\s*warn\s+(.*)$')
+''' Regular expression to parse warn statements '''
+
 
 def yaml_pp(fname, prefix = '', prev = None):
+  ''' Pre-process the given file name
+
+  :param str fname: File name to pre-process
+  :param str prefix: (optional) Prefix string to maintain YAML structure
+  :param str prev: (optional) Previously processed file that is including this file.
+  :returns str: post-processed file contents
+
+  This is the main YAML pre-processor functions.  Implements most of the
+  logic related to YAML pre-processing.
+
+  It takes a file as input, executes the pre-processing statements
+  and returns the results as a text string.
+  '''
   txt = ''
   prefix2 = prefix.replace('-',' ')
   cond_stack = []
@@ -343,6 +468,10 @@ def yaml_pp(fname, prefix = '', prev = None):
       if mv:
         sys.stderr.write(mv.group(2) + '\n')
         sys.exit(1)
+      mv = warn_re.match(line)
+      if mv:
+        sys.stderr.write(mv.group(2) + '\n')
+        continue
 
       line = prefix + line.format(**yaml_pp_vars)
 
@@ -351,7 +480,24 @@ def yaml_pp(fname, prefix = '', prev = None):
 
   return txt
 
+def cmd_cli():
+  ''' Command Line Interface argument parser '''
+  cli = ArgumentParser(prog='ypp',description='YAML file pre-processor')
+  cli.add_argument('-I','--include', help='Add Include path', action='append')
+  cli.add_argument('-D','--define', help='Add constant', action='append')
+
+  cli.add_argument('-y','--yaml', help='Parse YAML',action='store_true')
+  cli.add_argument('-p','--preproc', help='Use pre-processor when parsing yaml',action='store_true')
+  cli.add_argument('file', help='YAML file to parse')
+  return cli
+
 def yparse_cmd(args):
+  '''  ypp main function
+
+  :param Namespace args: namespace contains passed CLI passed options
+
+  Main entry point for ypp command
+  '''
   if args.yaml:
     if args.preproc:
       yaml_init(args.include, args.define)
@@ -366,13 +512,37 @@ def yparse_cmd(args):
     print(txt)
 
 def dump(data):
+  ''' Alias for ``yaml.dump``
+
+  :param mixed data: data to dump.
+  :returns str: YAML dump of data
+  '''
   return yaml.dump(data)
 
 def process(yamlfile, includes, defines):
+  ''' Main entry point for YPP embedding
+
+  :param str yamlfile: File to process
+  :param list includes: List containing include directories
+  :param list defines: List containing strings to define.
+  :returns data: post-processed and YAML parsed data.
+
+  Reads the input yamlfile, and pre-processed.  The caller can specified
+  a list of directories (as specfied by the list ``includes`` to use for
+  the include path.  Also, the ``defines`` list can be used to initialize
+  the pre-processor variables.
+
+  '''
+
   yaml_init(includes, defines)
   return yaml.safe_load(yaml_pp(yamlfile))
 
 def load(thing):
+  ''' Alias for ``yaml.safe_load``
+
+  :param str thing: input for ``safe_load``
+  :returns mixed: data read from YAML entity
+  '''
   return yaml.safe_load(thing)
 
 ###################################################################
@@ -382,16 +552,7 @@ def load(thing):
 ###################################################################
 
 if __name__ == '__main__':
-  from argparse import ArgumentParser, Action
-
-  cli = ArgumentParser(prog='ypp',description='YAML file pre-processor')
-  cli.add_argument('-I','--include', help='Add Include path', action='append')
-  cli.add_argument('-D','--define', help='Add constant', action='append')
-
-  cli.add_argument('-y','--yaml', help='Parse YAML',action='store_true')
-  cli.add_argument('-p','--preproc', help='Use pre-processor when parsing yaml',action='store_true')
-  cli.add_argument('file', help='YAML file to parse')
-
+  cli = cmd_cli()
   args = cli.parse_args()
   yparse_cmd(args)
   sys.exit()
