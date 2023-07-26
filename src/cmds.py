@@ -7,7 +7,7 @@ import nukes
 import deploy
 import myotc
 import consts as K
-
+import os
 
 def sort_vms(vmlist):
   '''Sort VMs according to dependancies
@@ -230,23 +230,27 @@ def state_cmd(args):
 
   :param namespace args: values from CLI parser
   '''
-  c = myotc.connect(args)
-  if args.file:
-    yc = ypp.process(args.file, args.include, args.define)
-    vmorder = resolv_yaml(yc)
-    if args.mode == K.stop: vmorder.reverse()
+  if 'cfgopts' in args:
+    c = args.cfgopts[K.CONN]
+    vmorder = [ args.cfgopts[K.NAME] ]
   else:
-    vmorder = []
-    for i in c.compute.servers():
-      if not K.NAME in i: continue
-      vmorder.append(i[K.NAME])
+    c = myotc.connect(args)
+    if 'file' in args and args.file:
+      yc = ypp.process(args.file, args.include, args.define)
+      vmorder = resolv_yaml(yc)
+      if args.mode == K.stop: vmorder.reverse()
+    else:
+      vmorder = []
+      for i in c.compute.servers():
+        if not K.NAME in i: continue
+        vmorder.append(i[K.NAME])
 
-    if len(args.name) == 0:
-      print('Must provide a list of VMs')
-      sys.exit(2)
+      if len(args.name) == 0:
+        print('Must provide a list of VMs')
+        sys.exit(2)
 
   for vmname in vmorder:
-    if len(args.name):
+    if 'name' in args and len(args.name):
       match = False
       for wc in args.name:
         if fnmatch.fnmatch(vmname,wc):
@@ -293,4 +297,20 @@ def state_cmd(args):
         myotc.msg('vm {} is not in an active state\n'.format(vmname))
 
 
+
+def new_vault(args):
+  '''Create a new shared secrets store
+
+  :param namespace args: values from CLI parser
+  '''
+  DIR = '../secrets'
+  FILE = DIR + '/_secrets.yaml'
+
+  if not os.path.isdir(DIR):
+    if args.debug: print('Creating folder {}'.format(DIR))
+    os.mkdir(DIR)
+  if not os.path.isfile(FILE):
+    if args.debug: print('Creating file {}'.format(FILE))
+    with open(FILE, 'w') as fp:
+      fp.write('{}\n')
 

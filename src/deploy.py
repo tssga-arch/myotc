@@ -234,7 +234,7 @@ def new_vpc(opts, **attrs):
   # Always create an internal dnz zone
   if K.PRIVATE_DNS_ZONE in opts and not opts[K.PRIVATE_DNS_ZONE] is None:
     zname = '{}.{}'.format(sid,opts[K.PRIVATE_DNS_ZONE])
-    idnsz = c.dns.find_zone(zname,zone_type=K.private)
+    idnsz = c.dns.find_zone(myotc.sanitize_dns_name(zname),zone_type=K.private)
     if not idnsz:
       myotc.msg('Creating internal DNS zone {}...'.format(zname))
       idnsz = c.dns.create_zone(
@@ -287,9 +287,9 @@ def del_dns(zname, zone_type, bsname, rtype, opts):
   c = opts[K.CONN]
   dryrun = opts[K.DRYRUN]
 
-  dnszn = c.dns.find_zone(zname,zone_type=zone_type)
+  dnszn = c.dns.find_zone(myotc.sanitize_dns_name(zname),zone_type=zone_type)
   if not dnszn: return
-  name = '{}.{}'.format(bsname,zname)
+  name = '{}.{}'.format(bsname,myotc.sanitize_dns_name(zname))
 
   cset = find_rrs(dnszn, rtype, name)
   if cset:
@@ -314,9 +314,9 @@ def new_dns(zname, zone_type, bsname, rtype, rrs, opts):
   c = opts[K.CONN]
   dryrun = opts[K.DRYRUN]
 
-  dnszn = c.dns.find_zone(zname,zone_type=zone_type)
+  dnszn = c.dns.find_zone(myotc.sanitize_dns_name(zname),zone_type=zone_type)
   if not dnszn: return
-  name = '{}.{}'.format(bsname,zname)
+  name = '{}.{}'.format(bsname,myotc.sanitize_dns_name(zname))
 
   cset = find_rrs(dnszn, rtype, name, c)
   if cset:
@@ -647,6 +647,7 @@ def new_srv(id_or_name, opts, **kw):
         eip = c.create_floating_ip(server = server)
         myotc.msg('DONE\n')
         ip_addr = eip.floating_ip_address
+
       if upd_dns:
         new_dns(opts[K.PUBLIC_DNS_ZONE], K.public, name, 'A', [ ip_addr ], opts)
       else:

@@ -99,3 +99,5 @@ snat = 'snat'
 cidr_template = 'cidr_template'
 forced_net = 'forced_net'
 router_id = 'router_id'
+
+MYOTC_OPTS = 'MYOTC_OPTS'
