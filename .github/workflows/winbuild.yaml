@@ -20,8 +20,6 @@ jobs:
           python-version: 3.11
       - name: Tag versioning
         run: |
-          git pull --tags
-          git describe
           python scripts/gitver.py
           python scripts/gitver.py src/version.py
       - name: Install dependencies
