@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+''' Run only status, start, stop, reboot operations on a pre-configured VM '''
 import proxycfg
 import shows
 import cmds
@@ -8,6 +9,7 @@ import os
 import sys
 import openstack
 import os
+from version import VERSION
 
 def cliparser():
   ''' Generate CLI parser for UrOTC
@@ -17,6 +19,7 @@ def cliparser():
   cli = ArgumentParser(prog='UrOTC',
                         description='Your OTC operational calls',
                         add_help = False)
+  cli.add_argument('-V','--version', action='version', version='%(prog)s '+VERSION)
   cli.add_argument('-d','--debug', help='Enable debugging',action='store_true')
   if proxycfg.has_winreg:
     cli.add_argument('-A','--proxy-autocfg', dest='autocfg', help='Automatically guess proxy', action='store_true')

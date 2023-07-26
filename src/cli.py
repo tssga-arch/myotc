@@ -6,6 +6,7 @@ import cmds
 import proxycfg
 from argparse import ArgumentParser, Action
 import consts as K
+from version import VERSION
 
 ###################################################################
 #
@@ -20,6 +21,7 @@ def parser():
                         description='My OTC operational calls',
                         add_help = False)
   cli.add_argument('-d','--debug', help='Enable debugging',action='store_true')
+  cli.add_argument('-V','--version', action='version', version='%(prog)s '+VERSION)
   cli.add_argument('-I','--include', help='Add Include path', action='append')
   cli.add_argument('-D','--define', help='Add constant', action='append')
   if proxycfg.has_winreg:

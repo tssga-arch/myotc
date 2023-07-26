@@ -47,16 +47,16 @@ if len(sys.argv) >= 2 and sys.argv[1] == 'encode':
   # encode config
   cfgfile = cfname()
 
-  # Read current config
-  try:
-    incf = readcfg()
-  except:
-    sys.stderr.write('{cfgfile}: Read Error.  Creating it...\n'.format(cfgfile=cfgfile))
-    incf = {}
+  incf = {}
+
+  # ~ # Read current config
+  # ~ try:
+    # ~ incf = readcfg()
+  # ~ except:
+    # ~ sys.stderr.write('{cfgfile}: Read Error.  Creating it...\n'.format(cfgfile=cfgfile))
 
   interactive = False
   kn = ('TOKEN_ID','TOKEN_PSK', 'DOMAIN', 'PROJECT', 'AUTH_URL', 'RESOURCE_ID')
-  print('keys: {}'.format(str(kn)))
 
   # Read from environment
   for k in kn:

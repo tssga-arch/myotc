@@ -7,3 +7,6 @@ _keys_
 log.txt
 cfg.sh
 cfg.bat
+build
+dist
+*.spec
