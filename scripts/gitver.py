@@ -17,8 +17,14 @@ if version is None:
     sys.exit(1)
   version = rc.stdout.strip()
 
+if len(sys.argv) > 1 and sys.argv[1] == '--next':
+  next_dev = '-next(DEV)'
+  sys.argv.pop(1)
+else:
+  next_dev = ''
 
-outp = 'VERSION = \'{}\'\n'.format(version)
+
+outp = 'VERSION = \'{}{}\'\n'.format(version, next_dev)
 if len(sys.argv) == 2:
   with open(sys.argv[1],'w') as fp:
     fp.write(outp)
