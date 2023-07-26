@@ -22,24 +22,24 @@ jobs:
         run: |
           python scripts/gitver.py
           python scripts/gitver.py src/version.py
-      #~ - name: Install dependencies
-        #~ run: |
-          #~ del vars.bat
-          #~ .\setup.bat
-      #~ - name: Package EXEs
-        #~ run: |
-          #~ .\mk.bat
-      #~ - name: Looksie
-        #~ run: |
-          #~ dir dist
-      #~ - name: Upload binaries to release
-        #~ uses: svenstaro/upload-release-action@v2
-        #~ with:
-          #~ repo_token: ${{ secrets.GITHUB_TOKEN }}
-          #~ file: dist/*
-          #~ tag: ${{ github.ref }}
-          #~ overwrite: true
-          #~ file_glob: true
+      - name: Install dependencies
+        run: |
+          del vars.bat
+          .\setup.bat
+      - name: Package EXEs
+        run: |
+          .\mk.bat
+      - name: Looksie
+        run: |
+          dir dist
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
       - name: Update version.py
         run: |
           git checkout main
