@@ -7,8 +7,6 @@ import re
 from cryptography.fernet import Fernet
 
 cfkey = Fernet.generate_key()
-print(cfkey)
-
 
 if len(sys.argv) != 3:
   sys.stderr.write('Usage: {cmd} src dst\n'.format(cmd=sys.argv[0]))

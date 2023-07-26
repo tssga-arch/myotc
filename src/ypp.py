@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+''' YAML pre-processor module
+
+This can be used as python module or as a command line.
+
+If used on the command line, it acts as a pre-processor reading
+YAML files with pre-processor directives, and outputs
+the processed file.
+
+Optionally it can parse the generated YAML and dump it as a JSON
+object (which is also valid YAML document)
+'''
 import base64
 import yaml
 import sys
@@ -10,6 +21,7 @@ import subprocess
 import json
 from d3des import encrypt as d3des
 from argparse import ArgumentParser, Action
+from version import VERSION
 
 try:
   from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
@@ -485,6 +497,7 @@ def cmd_cli():
   cli = ArgumentParser(prog='ypp',description='YAML file pre-processor')
   cli.add_argument('-I','--include', help='Add Include path', action='append')
   cli.add_argument('-D','--define', help='Add constant', action='append')
+  cli.add_argument('-V','--version', action='version', version='%(prog)s '+VERSION)
 
   cli.add_argument('-y','--yaml', help='Parse YAML',action='store_true')
   cli.add_argument('-p','--preproc', help='Use pre-processor when parsing yaml',action='store_true')

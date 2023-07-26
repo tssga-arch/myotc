@@ -2,8 +2,13 @@
 setlocal
 call %~dp0%vars.bat
 
-pip install --proxy=%proxy% --only-binary=cryptography,netifaces python-openstackclient
-pip install --proxy=%proxy% otcextensions
-pip install --proxy=%proxy% passlib
-pip install --proxy=%proxy% pyinstaller
+if "%proxy%"=="" (
+  set proxy=
+) else (
+  set proxy=--proxy=%proxy%
+)
+pip install %proxy% --only-binary=cryptography,netifaces python-openstackclient
+pip install %proxy% otcextensions
+pip install %proxy% passlib
+pip install %proxy% pyinstaller
 

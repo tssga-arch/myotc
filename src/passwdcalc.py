@@ -6,10 +6,12 @@ try:
   from passlib.hash import md5_crypt, sha256_crypt, sha512_crypt
 except ImportError:
   pass
+from version import VERSION
 
 def passwdcalc_cli():
   '''passwdcat utility CLI generator'''
   cli = ArgumentParser(prog='passwdcalc',description='Calculate password strings')
+  cli.add_argument('-V','--version', action='version', version='%(prog)s '+VERSION)
   cli.add_argument('-1', '--md5', action = 'store_const', const ='MD5', dest = 'encode',
                     help = 'Encode md5 password')
   cli.add_argument('-5', '--sha256', action = 'store_const', const ='SHA256', dest = 'encode',
