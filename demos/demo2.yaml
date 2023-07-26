@@ -19,6 +19,7 @@ nets:
         image_size: 16
         flavor: s3.medium.1
         eip: True
+        cname: "*.demoapps"
         sg:
          - 22/tcp
          - 443/tcp

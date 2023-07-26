@@ -1,0 +1,7 @@
+set PROJECT=eu-de
+set AUTH_URL=https://iam.eu-de.otc.t-systems.com:443/v3
+
+set TOKEN_ID=xxxxxxxxxxxxxxxxx
+set TOKEN_PSK=xxxxxxxxxxxxxxxxx
+set DOMAIN=xxxxxxxxxxxxxxxxx
+set RESOURCE_ID=xxxxxxxxxxxxxxxxx

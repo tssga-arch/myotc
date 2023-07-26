@@ -10,6 +10,23 @@ MyOTC automation script
    :filename: ../src/cli.py
    :func: parser
 
+urotc
+-----
+
+Restricted automation script
+
+.. argparse::
+   :filename: ../src/urotc.py
+   :func: cliparser
+
+passwdcalc
+----------
+
+Calculate password hashes
+
+.. argparse::
+   :filename: ../src/passwdcalc.py
+   :func: passwdcalc_cli
 
 ypp
 ---

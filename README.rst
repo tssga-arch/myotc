@@ -38,6 +38,7 @@ Environment variables
 - ``NET_FORMAT`` : format template used to generate CIDR addresses
 - ``DEFAULT_IMAGE`` : Default image to use (if not specified)
 - ``DEFAULT_FLAVOR`` : Default VM flavor to use (if not specified)
+- ``MYOTC_OPTS`` : Additional config variables
 
 TODO
 ----

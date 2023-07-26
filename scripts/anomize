@@ -1,0 +1,12 @@
+#!/bin/sh
+set -euf -o pipefail
+#
+mydir=$(dirname "$0")
+envfile=$(readlink -f "$mydir/..")/cfg.sh
+if [ ! -f "$envfile" ] ; then
+  echo "$envfile: env file not found" 1>&2
+  exit 1
+fi
+
+sed -e 's/^\([ \t]*export[ \t][_A-Za-z][_A-Za-z0-9]*\)=.*/\1=xxxxxxx/' $envfile > ${envfile}-sample
+

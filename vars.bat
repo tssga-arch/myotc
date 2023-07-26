@@ -41,6 +41,7 @@ if NOT "%PKGVER%" == "" goto :DONE
     goto :DONE
   :ls1end
 
+  REM Note, this modifies HOME variable to %WPYDIR%\settings
   call %WPYDIR%\%ENVBAT%
 
 :DONE
@@ -48,6 +49,11 @@ if NOT "%PKGVER%" == "" goto :DONE
 set proxy=10.41.5.36:8080
 set http_proxy=http://%proxy%/
 set https_proxy=http://%proxy%/
+set MYOTC_OPTS=
+REM ~ set proxy=
+REM ~ set http_proxy=
+REM ~ set https_proxy=
+REM ~ set MYOTC_OPTS=-A
 
 set ENVBAT=
 set SDIR=

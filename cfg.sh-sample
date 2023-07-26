@@ -1,0 +1,9 @@
+#!/bin/sh
+
+PROJECT=eu-de ; export PROJECT
+AUTH_URL=https://iam.eu-de.otc.t-systems.com:443/v3 ; export AUTH_URL
+
+export TOKEN_ID=xxxxxxx
+export TOKEN_PSK=xxxxxxx
+export DOMAIN=xxxxxxx
+export RESOURCE_ID=xxxxxxx

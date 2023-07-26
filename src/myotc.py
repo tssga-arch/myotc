@@ -9,6 +9,8 @@ import ypp
 import sys
 from dataclasses import dataclass
 import consts as K
+import shlex
+import proxycfg
 
 @dataclass
 class Settings:
@@ -65,6 +67,9 @@ def connect(args = None):
     settings.connection = openstack.connect(cloud=auth)
   return settings.connection
 
+def sanitize_dns_name(zname):
+  return zname.rstrip('.')+'.'
+
 def pprint(dat):
   ''' ``pprint`` for OpenStack objects
 
@@ -72,10 +77,24 @@ def pprint(dat):
   '''
   settings.connection.pprint(dat)
 
+def env_defaults():
+  ''' Check environment to see if user has common defaults
+
+  The ``sys.argv`` variable is modified accordingly
+  '''
+  opts = os.getenv(K.MYOTC_OPTS)
+  if opts is None: return
+  opts = shlex.split(opts)
+  opts.reverse()
+  for i in opts:
+    sys.argv.insert(1,i)
+
 if __name__ == '__main__':
   argparser = cli.parser()
+  env_defaults()
   args = argparser.parse_args()
   if args.debug: openstack.enable_logging(debug=True)
+  proxycfg.proxy_cfg(args.autocfg, args.debug)
 
   if 'func' in args:
     args.func(args)

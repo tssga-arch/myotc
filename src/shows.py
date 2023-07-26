@@ -71,17 +71,22 @@ def vmlist_cmd(args):
 
   :param namespace args: values from CLI parser
   '''
-  c = myotc.connect(args)
-
   first = True
-  if args.sid:
-    prefix = '{}-'.format(args.sid)
-  elif not ypp.vars(K.SID) is None:
-    prefix = '{}-'.format(ypp.vars(K.SID))
-  else:
-    prefix = None
-  xtab = {K.image_id: K.sID, K.image_size: K.size, K.image_name: K.NAME }
 
+  if 'cfgopts' in args:
+    c = args.cfgopts[K.CONN]
+    args.spec.append(args.cfgopts[K.NAME])
+    prefix = None
+  else:
+    c = myotc.connect(args)
+    if args.sid:
+      prefix = '{}-'.format(args.sid)
+    elif not ypp.vars(K.SID) is None:
+      prefix = '{}-'.format(ypp.vars(K.SID))
+    else:
+      prefix = None
+
+  xtab = {K.image_id: K.sID, K.image_size: K.size, K.image_name: K.NAME }
   if args.format:
     fmt = args.format
     hdr = format_2_header(fmt)

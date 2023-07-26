@@ -13,6 +13,7 @@ import consts as K
 #
 ###################################################################
 
+
 def parser():
   ''' Command line argument parser '''
   cli = ArgumentParser(prog='MyOTC',
@@ -23,6 +24,8 @@ def parser():
   cli.add_argument('-D','--define', help='Add constant', action='append')
   if proxycfg.has_winreg:
     cli.add_argument('-A','--autocfg',help='Use WinReg to configure proxy', action='store_true')
+  cli.set_defaults(autocfg = False)
+
   subs = cli.add_subparsers()
 
   if proxycfg.has_winreg:
@@ -137,6 +140,9 @@ def parser():
   conout_cli.add_argument('-L','--no-limit', help='Return all available lines', action='store_const', dest='limit', const=None)
   conout_cli.add_argument('name', help='VM name to show',nargs='+')
   conout_cli.set_defaults(func = cmds.conout_cmd)
+
+  newvault_cli = subs.add_parser('new-store', help='Create a new/empty secrets store')
+  newvault_cli.set_defaults(func = cmds.new_vault)
 
   return cli
 

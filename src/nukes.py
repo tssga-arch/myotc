@@ -37,7 +37,7 @@ def nuke(c, sid, doIt = False, def_priv_zone='localnet', def_public_zone= None):
 
   # Remove automatic DNS entries
   zone_name = '{}.{}'.format(sid,def_priv_zone)
-  zn = c.dns.find_zone(zone_name,zone_type=K.private)
+  zn = c.dns.find_zone(myotc.sanitize_dns_name(zone_name),zone_type=K.private)
   if zn:
     if dryRun:
       print('WONT remove DNS internal zone {}'.format(zone_name))
@@ -48,7 +48,7 @@ def nuke(c, sid, doIt = False, def_priv_zone='localnet', def_public_zone= None):
 
   if not def_public_zone is None:
     zone_name = def_public_zone
-    zn = c.dns.find_zone(zone_name)
+    zn = c.dns.find_zone(myotc.sanitize_dns_name(zone_name))
     if not zn is None:
       for rs in c.dns.recordsets(zn):
         if K.NAME in rs:
@@ -154,7 +154,7 @@ def nuke(c, sid, doIt = False, def_priv_zone='localnet', def_public_zone= None):
 
   # Delete internal dnz zone
   zname = '{}.'.format(sid,def_priv_zone)
-  idnsz = c.dns.find_zone(zname,zone_type=K.private)
+  idnsz = c.dns.find_zone(myotc.sanitize_dns_name(zname),zone_type=K.private)
   if idnsz:
     if dryRun:
       print('WONT delete internal DNS zone {}'.format(zname))
