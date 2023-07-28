@@ -9,7 +9,7 @@ set priv=%~dp0%scripts\priv.py
 set kurotc=%~dp0%src\kurotc.py
 
 call %build% -1 src\ypp.py
-call %build% -1 src\passwdcalc.py
+call %build% -1 src\hasher.py
 call %py% %prep% %priv% src\kurotc.py
 call %build% -1 --openstack src\kurotc.py
 call %build% -1 --openstack src\myotc.py

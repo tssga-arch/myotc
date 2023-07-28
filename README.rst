@@ -42,7 +42,7 @@ Configuration can be done by defining the following environment variables:
 - ``DEFAULT_FLAVOR`` : Default VM flavor to use (if not specified)
 - ``MYOTC_OPTS`` : Additional config variables
 
-Additionally, these can be defined in the commandline with `-Dxxx=yyyy` or in the 
+Additionally, these can be defined in the commandline with `-Dxxx=yyyy` or in the
 YAML file with `#define xxx yyy` statements
 
 TODO
@@ -50,13 +50,6 @@ TODO
 
 - custom tags for VMs
 - include `site-packages/openstack/config/vendors/otc.json` in the wrapped exe
-- Create github action to create Windows EXE:
-  - use gitver to modify src/version.py
-  - https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-  - use windows-latest
-  - upload to gh releases
-  - https://github.com/softprops/action-gh-release
-
 
 Known issues
 ------------

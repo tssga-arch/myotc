@@ -19,13 +19,13 @@ Restricted automation script
    :filename: ../src/urotc.py
    :func: cliparser
 
-passwdcalc
-----------
+hasher
+------
 
 Calculate password hashes
 
 .. argparse::
-   :filename: ../src/passwdcalc.py
+   :filename: ../src/hasher.py
    :func: passwdcalc_cli
 
 ypp

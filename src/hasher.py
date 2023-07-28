@@ -10,7 +10,7 @@ from version import VERSION
 
 def passwdcalc_cli():
   '''passwdcat utility CLI generator'''
-  cli = ArgumentParser(prog='passwdcalc',description='Calculate password strings')
+  cli = ArgumentParser(prog='hasher',description='Calculate hashes of password strings')
   cli.add_argument('-V','--version', action='version', version='%(prog)s '+VERSION)
   cli.add_argument('-1', '--md5', action = 'store_const', const ='MD5', dest = 'encode',
                     help = 'Encode md5 password')
