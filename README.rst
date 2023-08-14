@@ -49,7 +49,6 @@ TODO
 ----
 
 - custom tags for VMs
-- include `site-packages/openstack/config/vendors/otc.json` in the wrapped exe
 
 Known issues
 ------------
