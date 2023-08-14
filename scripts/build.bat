@@ -55,7 +55,9 @@ if NOT "%1" =="" (
       --hidden-import dogpile.cache.backends.null ^
       --hidden-import dogpile.cache.backends.file ^
       --add-data %sitedir%\openstack\config\defaults.json;openstack\config ^
+      --add-data %sitedir%\openstack\config\vendors\otc.json;openstack\config\vendors ^
       --add-data %sitedir%\os_service_types\data\service-types.json;os_service_types\data
+
     SHIFT
     goto :loop
   )
