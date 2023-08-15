@@ -1,0 +1,37 @@
+name: Test Windows executables generation
+
+on:
+  push:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    name: Windows build
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Tag versioning
+        run: |
+          python scripts/gitver.py
+          python scripts/gitver.py src/version.py
+      - name: Install dependencies
+        run: |
+          del vars.bat
+          .\setup.bat
+      - name: Package EXEs
+        run: |
+          .\mk.bat
+      - name: Looksie
+        run: |
+          dir dist
+      - uses: actions/upload-artifact@v3
+        with:
+          name: winexes
+          path: dist/
