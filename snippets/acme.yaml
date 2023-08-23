@@ -25,6 +25,18 @@
 - wget -O- {acme_get_url} | env HOME="$(dirname {acme_root})" sh -s email="{acme_email}"
 #ifdef acme_domains
 - {acme_issue} {acme_domains}
+- |
+  #ifdef ca_root
+  # Take care of possible non-ECC certificates -- Not fully tested.
+  set -x
+  if [ -f "{vhost_conf_dir}/{vhost_fqdn}.conf" ] ; then
+    if [ -d "{ca_root}" ] && [ ! -d "{ca_root}/{vhost_fqdn}_ecc" ] && [ -d "{ca_root}/{vhost_fqdn}" ] ; then
+      if grep "/{vhost_fqdn}_ecc/" "{vhost_conf_dir}/{vhost_fqdn}.conf" ; then
+        sed -i_eccfix -e 's!/{vhost_fqdn}_ecc/!{vhost_fqdn}/!' "{vhost_conf_dir}/{vhost_fqdn}.conf"
+      fi
+    fi
+  fi
+  #endif
 #endif
 # Add a cronjob
 - echo "{acme_cron} {acme_root}/acme.sh --cron --server {acme_server} -w {acme_web_root} --home {acme_root} --reloadcmd '{acme_reloadcmd}'> /dev/null" > /etc/cron.d/acme_sh

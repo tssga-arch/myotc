@@ -29,6 +29,8 @@ jobs:
       - name: Package EXEs
         run: |
           .\mk.bat
+      - name: Package snippets
+        run: Compress-Archive -Path snippets/* -Destination dist/snippets.zip
       - name: Looksie
         run: |
           dir dist
