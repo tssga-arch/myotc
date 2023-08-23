@@ -1,1 +1,1 @@
-VERSION = 'v1.2.0-next(DEV)'
+VERSION = 'v1.2.1-next(DEV)'
