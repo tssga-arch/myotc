@@ -27,10 +27,12 @@ jobs:
       - name: Package EXEs
         run: |
           .\mk.bat
+      - name: Package snippets
+        run: Compress-Archive -Path snippets/* -Destination dist/snippets.zip
       - name: Looksie
         run: |
           dir dist
       - uses: actions/upload-artifact@v3
         with:
-          name: winexes
+          name: winbuild-artifacts
           path: dist/

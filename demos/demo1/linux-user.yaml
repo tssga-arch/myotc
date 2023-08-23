@@ -1,8 +1,0 @@
-name: linux
-sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-groups: users
-lock_passwd: false
-shell: /bin/bash
-passwd: $6$a9mFVaQzLjBr5GEz$O3dodR3VudX2b5aGM99pPA5J/MCSp0y9n8dmjK7iJmkmAsBptrF3R0lbKKpU0HPYuOLDc7Yrd7q/6LVnjiy25.
-ssh_authorized_keys:
- - $KEYGEN:linux:pub$
