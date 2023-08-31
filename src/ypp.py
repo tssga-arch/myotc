@@ -293,7 +293,7 @@ def sshkeygen(line):
 
   return "\n".join(lines)
 
-pwgen_re = re.compile(r'(.*)\$PWGEN:([A-Za-z][A-Za-z0-9]*)(:[^\$]*|)\$')
+pwgen_re = re.compile(r'(.*)\$PWGEN:([_A-Za-z][_A-Za-z0-9]*)(:[^\$]*|)\$')
 ''' regular expression to parse PWGEN macros '''
 
 def pwgen(line):
