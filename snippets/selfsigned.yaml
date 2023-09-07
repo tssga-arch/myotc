@@ -15,5 +15,4 @@
 # see https://unix.stackexchange.com/questions/104171/create-ssl-certificate-non-interactively
 - printf '#!/bin/sh\nmkdir -p {ca_root}/"$1"\nopenssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=NL/ST=ZH/L=Den Haag/O=TSNL/CN=$*" -keyout {ca_root}/$1/$1.key  -out {ca_root}/$1/$1.cer\n' > {selfsigned_cmd}
 - chmod 755 {selfsigned_cmd}
-
-
+- {selfsigned_cmd} {vhost_fqdn}

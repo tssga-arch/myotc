@@ -9,4 +9,4 @@
  #ifndef selfsigned_cmd
  #define selfsigned_cmd /usr/local/bin/selfsigned
  #endif
-#ednif
+#endif

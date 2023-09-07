@@ -4,6 +4,7 @@ Handling Nuking of resources
 '''
 import myotc
 import consts as K
+import openstack
 
 ###################################################################
 #
@@ -132,9 +133,12 @@ def nuke(c, sid, doIt = False, def_priv_zone='localnet', def_public_zone= None):
           print('WONT delete subnet {}'.format(sn[K.NAME]))
         else:
           for r in routers:
-            # ~ try:
-              myotc.msg('Disconnecting vpc {vpc} from subnet {sn}...'.format(vpc = r.name, sn = sn.name))
+            myotc.msg('Disconnecting vpc {vpc} from subnet {sn}...'.format(vpc = r.name, sn = sn.name))
+            try:
               c.network.remove_interface_from_router(r.id, sn.id)
+            except openstack.exceptions.ResourceNotFound:
+              myotc.msg('(NOT CONNECTED)\n')
+            else:
               myotc.msg('DONE\n')
 
           myotc.msg('Deleting subnet {}...'.format(sn[K.NAME]))

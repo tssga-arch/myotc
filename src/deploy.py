@@ -7,6 +7,9 @@ import yaml
 import base64
 import consts as K
 import myotc
+import ipv4addr
+import time
+
 
 SG_KEYS = ('remote_ip_prefix', 'protocol', 'port_range_min', 'port_range_max' )
 SG_COPYKEYS = ('remote_ip_prefix', 'protocol', 'port_range_min', 'port_range_max', 'ethertype', 'remote_ip_prefix' )
@@ -191,45 +194,83 @@ def new_vpc(opts, **attrs):
   The following attributes are recongized:
 
   - ``bool snat``: Enable Source NAT
+  - ``str description``: VPC description
+  - ``str cidr``: CIDR block for VPC
+  
   '''
   c = opts[K.CONN]
   sid = opts[K.SID]
   dryrun = opts[K.DRYRUN]
 
   vpcname = '{}-vpc1'.format(sid)
-  vpc = c.network.find_router(vpcname)
-  if not vpc:
-    myotc.msg('Creating vpc {}...'.format(vpcname))
-    vpc = c.network.create_router(name=vpcname)
 
-    if K.snat in attrs:
-      snat = attrs[K.snat]
+  if K.USE_OTC_API: # Using OTC Extensions
+    vpc = c.vpc.find_vpc(vpcname, ignore_missing = True)
+    if not vpc:
+      myotc.msg('Creating vpc(OTCExt API) {}...'.format(vpcname))
+      apiargs = { 'name': vpcname }
+      for k in ('description', 'cidr'):
+        if k in attrs: apiargs[k] = attrs[k]
+      if not 'cidr' in apiargs:
+        apiargs['cidr'] = opts[K.CIDR_BLOCK]
+      
+      vpc = c.vpc.create_vpc(**apiargs)
+
+      if K.snat in attrs:
+        snat = attrs[K.snat]
+      else:
+        snat = True
+
+      vpc = c.vpc.update_vpc(vpc = vpc,
+                              enable_shared_snat = snat)
+      myotc.msg('DONE\n')
     else:
-      snat = True
+      apiargs = {}
+      for k in ('description','cidr','snat'):
+        api = k if k != 'snat' else 'enable_shared_snat'
+        if not k in attrs: continue
+        if attrs[k] != vpc[api]: apiargs[api] = attrs[k]
+      if len(apiargs) > 0:
+        myotc.msg('vpc {} changing settings...'.format(vpcname))
+        vpc = c.vpc.update_vpc(vpc = vpc, **apiargs)
+        myotc.msg('DONE\n')
+      
+  else:  
+    vpc = c.network.find_router(vpcname)
+    if not vpc:
+      myotc.msg('Creating vpc(Router API) {}...'.format(vpcname))
+      vpc = c.network.create_router(name=vpcname)
 
-    vpc = c.network.update_router(vpc.id,
-        external_gateway_info = {
-          'enable_snat': snat,
-          'network_id': vpc['external_gateway_info']['network_id']
-        }
-    )
-    myotc.msg('DONE\n')
-  else:
-    if K.snat in attrs:
-      snat = bool(attrs[K.snat])
-      if bool(vpc['external_gateway_info']['enable_snat']) != snat:
-        if dryrun:
-          print('vpc {} needs to change snat setting to {}'.format(vpcname,snat))
-        else:
-          myotc.msg('vpc {} changing snat setting to {}...'.format(vpcname,snat))
+      if K.snat in attrs:
+        snat = attrs[K.snat]
+      else:
+        snat = True
 
-          vpc = c.network.update_router(vpc.id,
-              external_gateway_info = {
-                'enable_snat': snat,
-                'network_id': vpc['external_gateway_info']['network_id']
-              }
-          )
-          myotc.msg('DONE\n')
+      vpc = c.network.update_router(vpc.id,
+          external_gateway_info = {
+            'enable_snat': snat,
+            'network_id': vpc['external_gateway_info']['network_id']
+          }
+      )
+      # ~ vpc = c.network.update_router(vpc.id,tags=['X=Y'])
+      # tags, routes, location
+      myotc.msg('DONE\n')
+    else:
+      if K.snat in attrs:
+        snat = bool(attrs[K.snat])
+        if bool(vpc['external_gateway_info']['enable_snat']) != snat:
+          if dryrun:
+            print('vpc {} needs to change snat setting to {}'.format(vpcname,snat))
+          else:
+            myotc.msg('vpc {} changing snat setting to {}...'.format(vpcname,snat))
+
+            vpc = c.network.update_router(vpc.id,
+                external_gateway_info = {
+                  'enable_snat': snat,
+                  'network_id': vpc['external_gateway_info']['network_id']
+                }
+            )
+            myotc.msg('DONE\n')
 
   # Always create an internal dnz zone
   if K.PRIVATE_DNS_ZONE in opts and not opts[K.PRIVATE_DNS_ZONE] is None:
@@ -344,12 +385,11 @@ def new_dns(zname, zone_type, bsname, rtype, rrs, opts):
       myotc.msg('DONE\n')
 
 
-def new_net(id_or_name, opts, cidr_tmpl=None, **attrs):
+def new_net(id_or_name, opts, **attrs):
   ''' Deploy new subnet
 
   :param int|str id_or_name: base id/name for this subnet
   :param dict opts: session options
-  :param cidr_templ: template used to assign CIDR addresses
   :param kwargs attrs: dict for incoming keywoard arguments, containing subnet attributes
   :returns None|instance: Returns None on error, Net instance on success
 
@@ -372,7 +412,12 @@ def new_net(id_or_name, opts, cidr_tmpl=None, **attrs):
     vpcname = attrs['vpc']
   else:
     vpcname = '{}-vpc1'.format(sid)
-  vpc = c.network.find_router(vpcname)
+
+  if K.USE_OTC_API:
+    vpc = c.vpc.find_vpc(vpcname)
+  else:
+    vpc = c.network.find_router(vpcname)
+
   if not vpc:
     print('Error: unable to create net {net}.  Missing vpc {vpc}'.format(net=name, vpc=vpcname))
     return None
@@ -381,10 +426,14 @@ def new_net(id_or_name, opts, cidr_tmpl=None, **attrs):
   if not snx:
     if not 'cidr' in attrs:
       if isinstance(id_or_name,int):
-        if cidr_tmpl is None:
-          cidr = opts[K.NET_FORMAT].format(id=id_or_name, id_hi=int(id_or_name/256), id_lo=int(id_or_name % 256))
+        if 'cidr' in vpc and not vpc['cidr'] is None:
+          vcidr = ipv4addr.IPv4Address(vpc['cidr'])
         else:
-          cidr = cidr_tmpl.format(id=id_or_name, id_hi=int(id_or_name/256), id_lo=int(id_or_name % 256))
+          vcidr = ipv4addr.IPv4Address(opts[K.CIDR_BLOCK])
+
+        snsize = 8 if not K.sn_size in attrs else attrs[K.sn_size]
+        cidr = '{net_id}/{prefix}'.format(net_id = vcidr.host_ip(id_or_name << snsize), prefix = 32 - snsize)        
+        print('Subnet {snet} Using CIDR: {cidr}'.format(snet=name,cidr=cidr))
       else:
         print('new_net(snid={snid}): must specify CIDR'.format(snid = id_or_name))
         return None
@@ -404,9 +453,32 @@ def new_net(id_or_name, opts, cidr_tmpl=None, **attrs):
 
     myotc.msg('Creating subnet {}...'.format(name))
     snx = c.network.create_subnet(**args)
-    myotc.msg('connecting to vpc {}...'.format(vpcname))
-    c.network.add_interface_to_router(vpc, snx.id)
-    myotc.msg('DONE\n')
+
+    if K.USE_OTC_API:    
+      myotc.msg('connecting to vpc {}...'.format(vpcname))
+      # OK... for some reason, the find_router doesn't the VPC
+      vrouter = None
+      count = 0
+      while vrouter is None and count < 60:
+        count +=1
+        vrouter = c.network.find_router(vpcname)
+        if vrouter is None: 
+          # Manually find it!
+          r = c.network.routers()
+          for x in r:
+            if x.name == vpcname:
+              vrouter = x
+              break
+          if vrouter is None:
+            myotc.msg('_')
+            time.sleep(1)
+
+      c.network.add_interface_to_router(vrouter, snx.id)
+      myotc.msg('DONE\n')
+    else:
+      myotc.msg('connecting to vpc {}...'.format(vpcname))
+      c.network.add_interface_to_router(vpc, snx.id)
+      myotc.msg('DONE\n')
 
   else:
     args = {}

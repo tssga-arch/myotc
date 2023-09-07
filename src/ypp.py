@@ -361,6 +361,8 @@ def pwgen(line):
 
 define_re = re.compile(r'^\s*#\s*define\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 ''' Regular expression to parse define statements '''
+default_re = re.compile(r'^\s*#\s*default\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
+''' Regular expression to parse default statements '''
 ifdef_re = re.compile(r'^\s*#\s*ifdef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
 ''' Regular expression to parse ifdef statements '''
 ifndef_re = re.compile(r'^\s*#\s*ifndef\s+([_A-Za-z][_A-Za-z0-9]*)\s*')
@@ -446,6 +448,13 @@ def yaml_pp(fname, prefix = '', prev = None):
       if mv:
         yaml_pp_vars[mv.group(1)] = line[mv.end():].format(**yaml_pp_vars)
         continue
+
+      mv = default_re.match(line)
+      if mv:
+        if not mv.group(1) in yaml_pp_vars:
+          yaml_pp_vars[mv.group(1)] = line[mv.end():].format(**yaml_pp_vars)
+        continue
+
 
       mv = yaml_inc(line)
       if mv:

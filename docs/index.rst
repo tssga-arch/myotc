@@ -2,14 +2,19 @@
 Project Documentation
 =====================
 
+myotc |release|
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    README
-   apidoc/modules
-   cli   
+   apidocs/index
+   cli
+   ypp
+   kurotc
+   CHANGES
+   TODO
 
 
 
