@@ -198,10 +198,23 @@ def lists_cmd(args):
   hdr = None
 
   if args.mode == K.vpc:
-    if fmt is None:
-      fmt = '{name:20} {status}'
-      hdr = '{:20} {}'.format('name','status')
-    iterator = c.network.routers()
+    if K.USE_OTC_API:
+      if fmt is None:
+        fmt = '{name:20} {snat:4} {cidr}'
+        hdr = '{:20} {:4} {}'.format('name','snat','CIDR')
+      iterator = []
+      for vpc in c.vpc.vpcs():
+        k = dict(vpc)
+        k[K.snat] = 'Yes' if k['enable_shared_snat'] else 'No'
+        if k['cidr'] is None: k['cidr'] = 'None'
+        iterator.append(k)
+      
+    else:
+      if fmt is None:
+        fmt = '{name:20} {status}'
+        hdr = '{:20} {}'.format('name','status')
+      iterator = c.network.routers()
+      
   elif args.mode == K.key:
     if fmt is None:
       fmt = '{name:16} {type:8} {short_public_key}'

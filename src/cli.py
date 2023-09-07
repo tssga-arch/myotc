@@ -41,7 +41,7 @@ def parser():
 
   nuke_cli = subs.add_parser('nuke', help='Completely nuke a cloud environment')
   nuke_cli.add_argument('-x','--execute', help='Execute (defaults to dry-run)',action='store_true')
-  nuke_cli.add_argument('file', help='YAML containing cloud description')
+  nuke_cli.add_argument('file', help='YAML containing cloud description',nargs='?')
   nuke_cli.set_defaults(func = cmds.nuke_cmd)
 
   start_cli = subs.add_parser('start', help='Start VM')

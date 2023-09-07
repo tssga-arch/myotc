@@ -12,15 +12,16 @@
 #
 import os
 import sys
+import glob
 sys.path.insert(0, os.path.abspath('../src'))
-
+import version as srcver
 
 # -- Project information -----------------------------------------------------
 
 project = 'myotc'
 copyright = '2023, TSI'
 author = 'Alejandro Liu'
-
+release = srcver.VERSION
 
 # -- General configuration ---------------------------------------------------
 
@@ -28,13 +29,23 @@ author = 'Alejandro Liu'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-               'sphinx.ext.autodoc',
-               'sphinx.ext.autosummary',
-               'sphinx.ext.doctest',
-               'sphinx.ext.intersphinx',
                'sphinxarg.ext',
+               'myst_parser',
+               'autodoc2',
+               # ~ 'sphinx.ext.autosummary',
+               # ~ 'sphinx.ext.doctest',
+               # ~ 'sphinx.ext.intersphinx',
                # ~ 'sphinx_design',
               ]
+myst_enable_extensions = [
+  'tasklist',
+  'fieldlist',
+]
+autodoc2_render_plugin = 'myst'
+autodoc2_packages = list(glob.glob('../src/*.py'))
+
+
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

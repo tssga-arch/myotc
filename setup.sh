@@ -8,6 +8,5 @@ pip install --only-binary=cryptography,netifaces python-openstackclient otcexten
 pip install passlib
 
 # sphinx related dependancies
-pip install docutils sphinx sphinx_rtd_theme sphinx-argparse
-pip install myst-parser
-pip install sphinxcontrib-autoprogram sphinxcontrib-redoc
+pip install docutils sphinx
+pip install myst-parser sphinx-autodoc2 sphinx-argparse

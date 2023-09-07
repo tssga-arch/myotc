@@ -13,6 +13,7 @@ should be translatable to localized strings.
 CLOUD = 'CLOUD'
 DEFAULT_CLOUD = 'otc'
 NAME = 'name'
+PROJECT = 'PROJECT'
 
 SID = 'SID'
 CONN = 'CONN'
@@ -29,8 +30,8 @@ HARD = 'HARD'
 SOFT = 'SOFT'
 
 PUBLIC_DNS_ZONE = 'PUBLIC_DNS_ZONE'
-NET_FORMAT = 'NET_FORMAT'
-DEFAULT_NET_FORMAT = '10.{id_hi}.{id_lo}.0/24'
+CIDR_BLOCK = 'CIDR_BLOCK'
+DEFAULT_CIDR_BLOCK = '10.0.0.0/16'
 PRIVATE_DNS_ZONE = 'PRIVATE_DNS_ZONE'
 DEFAULT_PRIVATE_DNS_ZONE = 'nova.'
 DEFAULT_IMAGE = 'DEFAULT_IMAGE'
@@ -96,8 +97,11 @@ records = 'records'
 port_id = 'port_id'
 
 snat = 'snat'
-cidr_template = 'cidr_template'
 forced_net = 'forced_net'
 router_id = 'router_id'
 
 MYOTC_OPTS = 'MYOTC_OPTS'
+
+
+sn_size = 'sn_size'
+USE_OTC_API =  True

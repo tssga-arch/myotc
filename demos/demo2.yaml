@@ -4,6 +4,7 @@
 #define PWDEFAULTS SHA256:12
 #define SID demo2
 #define PUBLIC_DNS_ZONE otc1.cloudkit7.xyz
+#define CIDR_BLOCK 10.255.0.0/16
 
 snat: True
 sgs:
@@ -13,6 +14,7 @@ sgs:
   - 8080/tcp
 nets:
   1:
+    sn_size: 7
     vms:
       1:
         image: Standard_Ubuntu_22.04_latest

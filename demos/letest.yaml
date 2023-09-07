@@ -76,7 +76,6 @@ nets:
             #include acme.yaml
             #else
             #include selfsigned.yaml
-            - {selfsigned_cmd} {vhost_fqdn}
             #endif
 
             # Enable vhost

@@ -121,17 +121,11 @@ def deploy_cmd(args):
     K.DRYRUN: dryrun,
     K.PRIVATE_DNS_ZONE: ypp.vars(K.PRIVATE_DNS_ZONE, K.DEFAULT_PRIVATE_DNS_ZONE),
     K.PUBLIC_DNS_ZONE:  ypp.vars(K.PUBLIC_DNS_ZONE),
-    K.NET_FORMAT: ypp.vars(K.NET_FORMAT, K.DEFAULT_NET_FORMAT),
+    K.CIDR_BLOCK: ypp.vars(K.CIDR_BLOCK, K.DEFAULT_CIDR_BLOCK),
     K.DEFAULT_FLAVOR: ypp.vars(K.DEFAULT_FLAVOR, K.DEFAULT_FLAVOR_VAL),
     K.DEFAULT_IMAGE: ypp.vars(K.DEFAULT_IMAGE, K.DEFAULT_IMAGE_VAL),
   }
-
-
-  if K.snat in yc:
-    snat = yc[K.snat]
-  else:
-    snat = True
-
+  snat = True if not K.snat in yc else yc[K.snat]
   deploy.new_vpc(opts, snat=snat)
 
   if K.sgs in yc:
@@ -140,13 +134,9 @@ def deploy_cmd(args):
       deploy.new_sg('{}-sg-{}'.format(sid,sgn),yc[K.sgs][sgn],opts)
 
   vmqueue = {}
-  if K.cidr_template in yc:
-    cidr_tmpl = yc[K.cidr_template]
-  else:
-    cidr_tmpl = None
 
   for net_id in yc[K.nets]:
-    net = deploy.new_net(net_id,opts,cidr_tmpl=cidr_tmpl,**yc[K.nets][net_id])
+    net = deploy.new_net(net_id,opts,**yc[K.nets][net_id])
 
     # create vms in net...
     if K.vms in yc[K.nets][net_id]:
@@ -169,7 +159,10 @@ def nuke_cmd(args):
 
   :param namespace args: values from CLI parser
   '''
-  yc = ypp.process(args.file, args.include, args.define)
+  if not args.file is None:
+    ypp.process(args.file, args.include, args.define)
+  else:
+    ypp.yaml_init(args.include,args.define)
 
   sid = ypp.vars(K.SID)
   if sid is None:
