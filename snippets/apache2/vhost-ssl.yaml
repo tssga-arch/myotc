@@ -38,7 +38,7 @@
 #ifdef ca_root
  #ifdef USE_ACME
   #ifndef vhost_sslcert
-  #define vhost_sslcert {ca_root}/{vhost_fqdn}_ecc/{vhost_fqdn}.cer
+  #define vhost_sslcert {ca_root}/{vhost_fqdn}_ecc/fullchain.cer
   #endif
   #ifndef vhost_sslkey
   #define vhost_sslkey  {ca_root}/{vhost_fqdn}_ecc/{vhost_fqdn}.key
