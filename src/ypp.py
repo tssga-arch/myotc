@@ -19,6 +19,7 @@ import random
 import string
 import subprocess
 import json
+import platform
 from d3des import encrypt as d3des
 from argparse import ArgumentParser, Action
 from version import VERSION
@@ -280,6 +281,9 @@ def sshkeygen(line):
       fp.write(private_key + "\n")
     with open(keydir + "/" + store + '.pub','w') as fp:
       fp.write(public_key + "\n")
+    if platform.system() != 'Windows':
+      # Make sure the key file has the right permissions
+      os.chmod(keydir + "/" + store, 0o600)
 
   if mode == 'pub':
     okey = public_key
