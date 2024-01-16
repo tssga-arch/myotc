@@ -47,6 +47,7 @@ if NOT "%PKGVER%" == "" goto :DONE
 :DONE
 
 set proxy=10.41.5.36:8080
+REM ~ set proxy=sia-lb.telekom.de:8080
 set http_proxy=http://%proxy%/
 set https_proxy=http://%proxy%/
 set MYOTC_OPTS=
